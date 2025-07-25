@@ -963,160 +963,56 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleDoneCard.checked = cardVisibility.done;
         toggleAttendanceCard.checked = cardVisibility.attendance;
         toggleAttendanceSummaryCard.checked = cardVisibility.attendanceSummary;
-        // Update calculator checkbox based on loaded settings
         toggleCalculatorCard.checked = cardVisibility.calculator;
     }
     updateCardVisibility(); // Apply initial visibility
     
+    // Drag and Drop Functionality
+    const dashboardCards = document.querySelectorAll('.dashboard-card');
+    const mainContainer = document.querySelector('.main-container');
+
+    dashboardCards.forEach(card => {
+        card.setAttribute('draggable', 'true');
+        card.addEventListener('dragstart', () => {
+            card.classList.add('dragging');
+        });
+
+        card.addEventListener('dragend', () => {
+            card.classList.remove('dragging');
+        });
+    });
+
+    mainContainer.addEventListener('dragover', e => {
+        e.preventDefault();
+        const afterElement = getDragAfterElement(mainContainer, e.clientY);
+        const draggingCard = document.querySelector('.dragging');
+        if (afterElement == null) {
+            mainContainer.appendChild(draggingCard);
+        } else {
+            mainContainer.insertBefore(draggingCard, afterElement);
+        }
+    });
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.dashboard-card:not(.dragging)')];
+
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
     // Fetch holidays for current and next year
     fetchHolidays(new Date().getFullYear());
     fetchHolidays(new Date().getFullYear() + 1);
 
     renderAttendance(); // Initial render of daily attendance and monthly summary
     updatePomoTimer();
-
-    // --- Voice Memo Functions ---
-    const renderRecordings = () => {
-        recordingsList.innerHTML = '';
-        recordings.forEach(recording => {
-            const recordingItem = document.createElement('div');
-            recordingItem.classList.add('recording-item');
-            recordingItem.dataset.id = recording.id;
-
-            const infoDiv = document.createElement('div');
-            infoDiv.classList.add('recording-info');
-            infoDiv.innerHTML = `
-                <span class="recording-timestamp">${recording.timestamp}</span>
-                ${recording.tag ? `<span class="recording-tag">${recording.tag}</span>` : ''}
-            `;
-
-            const controlsDiv = document.createElement('div');
-            controlsDiv.classList.add('audio-controls');
-
-            const audio = new Audio();
-            audio.controls = true;
-            audio.preload = 'metadata'; // Optimize loading
-            audio.src = recording.data; // Set src from Base64 data
-
-            const playbackTimer = document.createElement('span');
-            playbackTimer.classList.add('playback-timer');
-            playbackTimer.textContent = recording.duration ? `00:00 / ${formatTime(Math.floor(recording.duration))}` : '00:00 / --:--'; // Initial display with stored duration
-
-            audio.ondurationchange = () => {
-                if (isFinite(audio.duration) && audio.duration > 0) {
-                    playbackTimer.textContent = `${formatTime(Math.floor(audio.currentTime))} / ${formatTime(Math.floor(audio.duration))}`;
-                }
-            };
-            audio.ontimeupdate = () => {
-                if (isFinite(audio.duration)) {
-                    playbackTimer.textContent = `${formatTime(Math.floor(audio.currentTime))} / ${formatTime(Math.floor(audio.duration))}`;
-                }
-            };
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.classList.add('delete-recording-btn');
-            deleteBtn.textContent = '❌';
-
-            controlsDiv.appendChild(audio);
-            controlsDiv.appendChild(playbackTimer);
-            controlsDiv.appendChild(deleteBtn);
-
-            recordingItem.appendChild(infoDiv);
-            recordingItem.appendChild(controlsDiv);
-            recordingsList.appendChild(recordingItem);
-        });
-    };
-
-    const saveRecording = (blob) => {
-        const tempAudio = document.createElement('audio');
-        tempAudio.src = URL.createObjectURL(blob);
-        tempAudio.onloadedmetadata = () => {
-            const duration = isFinite(tempAudio.duration) ? tempAudio.duration : 0;
-            URL.revokeObjectURL(tempAudio.src); // Clean up the temporary URL
-
-            const reader = new FileReader();
-            reader.readAsDataURL(blob);
-            reader.onloadend = () => {
-                const base64data = reader.result;
-                const timestamp = new Date().toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
-                const tag = recordingTagInput.value;
-                const newRecording = { id: Date.now(), data: base64data, timestamp, tag, duration };
-                recordings.unshift(newRecording); // Add to the beginning
-                saveData('recordings', recordings.map(r => ({ id: r.id, data: r.data, timestamp: r.timestamp, tag: r.tag, duration: r.duration })));
-                renderRecordings();
-                recordingTagInput.value = ''; // Clear tag input
-            };
-        };
-    };
-
-    const deleteRecording = (id) => {
-        recordings = recordings.filter(r => r.id !== id);
-        saveData('recordings', recordings.map(r => ({ id: r.id, data: r.data, timestamp: r.timestamp, tag: r.tag, duration: r.duration })));
-        renderRecordings();
-    };
-
-    const startRecording = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.ondataavailable = event => {
-                audioChunks.push(event.data);
-            };
-            mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                saveRecording(audioBlob);
-                audioChunks = [];
-            };
-            mediaRecorder.start();
-            recordButton.textContent = '녹음 중지';
-            recordButton.classList.add('recording');
-
-            let seconds = 0;
-            recordingTimerElem.textContent = formatTime(seconds);
-            recordingTimerInterval = setInterval(() => {
-                seconds++;
-                recordingTimerElem.textContent = formatTime(seconds);
-            }, 1000);
-        } catch (err) {
-            console.error('Error starting recording:', err);
-            alert('음성 녹음을 시작할 수 없습니다. 마이크 접근 권한을 확인해주세요.');
-        }
-    };
-
-    const stopRecording = () => {
-        mediaRecorder.stop();
-        recordButton.textContent = '녹음 시작';
-        recordButton.classList.remove('recording');
-        clearInterval(recordingTimerInterval);
-        recordingTimerElem.textContent = '00:00';
-    };
-
-    // Voice Memo Event Listeners
-    recordButton.addEventListener('click', () => {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-            stopRecording();
-        } else {
-            startRecording();
-        }
-    });
-
-    recordingsList.addEventListener('click', (e) => {
-        if (e.target.classList.contains('delete-recording-btn')) {
-            const id = Number(e.target.closest('.recording-item').dataset.id);
-            deleteRecording(id);
-        }
-    });
-
-    const initialRecordings = loadData('recordings');
-    if (initialRecordings) {
-        recordings = initialRecordings.map(r => {
-            // Re-create Blob URL from Base64 data for playback
-            if (r.data) {
-                const blob = base64toBlob(r.data, 'audio/wav'); // Assuming audio/wav type
-                r.url = URL.createObjectURL(blob);
-            }
-            return r;
-        });
-        renderRecordings();
-    }
 });
+
+    
