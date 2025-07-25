@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>업무 대시보드</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h1>업무 대시보드</h1>
+    <div class="main-container">
+      <div id="weather-card" class="dashboard-card">
+          <h1>날씨 알리미</h1>
+          <p id="status">알림 시작 버튼을 눌러주세요.</p>
+          <div id="weather-info" class="hidden">
+            <p>
+              <strong>현재 날씨:</strong> <span id="current-weather"></span>
+            </p>
+            <p><strong>기온:</strong> <span id="current-temp"></span>℃</p>
+            <h2>시간대별 예보</h2>
+            <div id="hourly-forecast"></div>
+          </div>
+          <div class="tts-control">
+            <span>TTS 알림</span>
+            <label class="switch">
+              <input type="checkbox" id="tts-toggle" checked />
+              <span class="slider round"></span>
+            </label>
+          </div>
+          <button id="toggleButton">알림 시작</button>
+        </div>
+
+        <div id="notes-card" class="dashboard-card">
+          <h2>메모장</h2>
+          <form id="note-form">
+            <input
+              type="text"
+              id="note-input"
+              placeholder="새 메모를 입력하세요..."
+            />
+            <button type="submit">추가</button>
+          </form>
+          <ul id="note-list"></ul>
+        </div>
+
+        <div id="voice-memo-card" class="dashboard-card">
+          <h2>음성 메모</h2>
+          <div class="voice-memo-controls">
+            <input type="text" id="recording-tag-input" placeholder="태그를 입력하세요...">
+            <button id="record-button">녹음 시작</button>
+            <span id="recording-timer" class="timer-display">00:00</span>
+          </div>
+          <div id="recordings-list"></div>
+        </div>
+
+        <div id="pomodoro-card" class="dashboard-card">
+            <h2>뽀모도로 타이머</h2>
+            <div class="pomodoro-timer-display">
+              <div id="pomodoro-visual-timer"></div>
+              <div id="pomodoro-digital-timer">25:00</div>
+            </div>
+            <div id="pomodoro-status">집중할 시간!</div>
+            <div class="pomodoro-settings">
+              <label for="work-time">작업:</label>
+              <input type="number" id="work-time" value="25" min="1" />
+              <label for="break-time">휴식:</label>
+              <input type="number" id="break-time" value="5" min="1" />
+              <button id="set-pomo-time">설정</button>
+            </div>
+            <div class="pomodoro-controls">
+              <button id="pomo-start-pause">시작</button>
+              <button id="pomo-reset">리셋</button>
+            </div>
+          </div>
+
+          <div id="todo-card" class="dashboard-card">
+            <h2>오늘의 할 일</h2>
+            <div class="tts-control todo-tts-control">
+              <span>To-Do 알림</span>
+              <label class="switch">
+                <input type="checkbox" id="todo-tts-toggle" checked />
+                <span class="slider round"></span>
+              </label>
+            </div>
+            <form id="todo-form">
+              <input type="time" id="todo-time" required />
+              <input
+                type="text"
+                id="todo-text"
+                placeholder="알림 내용을 입력하세요..."
+                required
+              />
+              <select id="todo-priority">
+                <option value="high">높음</option>
+                <option value="medium" selected>보통</option>
+                <option value="low">낮음</option>
+              </select>
+              <button type="submit">추가</button>
+            </form>
+            <ul id="todo-list"></ul>
+          </div>
+
+          <div id="done-card" class="dashboard-card">
+            <h2>오늘 해낸 일</h2>
+            <ul id="done-list"></ul>
+          </div>
+
+    <div id="calculator-card" class="dashboard-card">
+        <h2>계산기</h2>
+        <div class="calculator-display" id="calculator-display">0</div>
+        <div class="calculator-buttons">
+            <button class="calculator-button clear">C</button>
+            <button class="calculator-button operator">&divide;</button>
+            <button class="calculator-button operator">&times;</button>
+            <button class="calculator-button operator">-</button>
+            <button class="calculator-button number">7</button>
+            <button class="calculator-button number">8</button>
+            <button class="calculator-button number">9</button>
+            <button class="calculator-button operator plus">+</button>
+            <button class="calculator-button number">4</button>
+            <button class="calculator-button number">5</button>
+            <button class="calculator-button number">6</button>
+            <button class="calculator-button number">1</button>
+            <button class="calculator-button number">2</button>
+            <button class="calculator-button number">3</button>
+            <button class="calculator-button equals">=</button>
+            <button class="calculator-button number zero">0</button>
+            <button class="calculator-button decimal">.</button>
+        </div>
+    </div>
+
+    <div id="attendance-card" class="dashboard-card">
+      <h2>9-to-6 출퇴근부</h2>
+      <div class="attendance-controls">
+        <button id="check-in-btn">출근 (9:00)</button>
+        <button id="check-out-btn">퇴근 (18:00)</button>
+        <select id="status-select">
+          <option value="병가">병가</option>
+          <option value="결근">무단결근</option>
+          <option value="월차">월차</option>
+        </select>
+        <button id="apply-status-btn">상태 적용</button>
+      </div>
+
+      <div class="attendance-daily-view">
+        <h3>주간 현황</h3>
+        <table id="daily-attendance-table">
+          <thead>
+            <tr>
+              <th>날짜</th>
+              <th>요일</th>
+              <th>출근</th>
+              <th>퇴근</th>
+              <th>상태</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Daily attendance rows will be inserted here by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div id="attendance-summary-card" class="dashboard-card">
+      <h2>월간 출퇴근 요약</h2>
+      <div class="attendance-monthly-summary">
+        <h3>월간 요약 <button id="show-monthly-view-btn">월 현황</button></h3>
+        <p>총 근무일: <span id="monthly-total-days">0</span>일</p>
+        <p>지각: <span id="monthly-late-count">0</span>회</p>
+        <p>조퇴: <span id="monthly-early-count">0</span>회</p>
+        <p>병가: <span id="monthly-sick-count">0</span>회</p>
+        <p>무단결근: <span id="monthly-absent-count">0</span>회</p>
+        <p>월차: <span id="monthly-annual-leave-count">0</span>회</p>
+      </div>
+
+      <div id="monthly-calendar-view" class="hidden">
+        <div class="calendar-header">
+          <button id="prev-month-btn">이전 달</button>
+          <h4 id="current-month-year"></h4>
+          <button id="next-month-btn">다음 달</button>
+        </div>
+        <div class="calendar-weekdays">
+          <span>일</span><span>월</span><span>화</span><span>수</span
+          ><span>목</span><span>금</span><span>토</span>
+        </div>
+        <div class="calendar-grid" id="calendar-grid"></div>
+      </div>
+    </div>
+    <div id="settings-card" class="dashboard-card">
+          <h2>대시보드 설정</h2>
+          <div class="settings-controls">
+            <label>
+              <input type="checkbox" id="toggle-weather-card" checked> 날씨 알리미
+            </label>
+            <label>
+              <input type="checkbox" id="toggle-notes-card" checked> 메모장
+            </label>
+            <label>
+              <input type="checkbox" id="toggle-voice-memo-card" checked> 음성 메모
+            </label>
+            <label>
+              <input type="checkbox" id="toggle-pomodoro-card" checked> 뽀모도로 타이머
+            </label>
+            <label>
+              <input type="checkbox" id="toggle-todo-card" checked> 오늘의 할 일
+            </label>
+            <label>
+              <input type="checkbox" id="toggle-done-card" checked> 오늘 해낸 일
+            </label>
+            <label>
+              <input type="checkbox" id="toggle-attendance-card" checked> 출퇴근부
+            </label>
+            <label>
+              <input type="checkbox" id="toggle-attendance-summary-card" checked> 월간 출퇴근 요약
+            </label>
+            <label>
+              <input type="checkbox" id="toggle-calculator-card" checked> 계산기
+            </label>
+          </div>
+        </div>
+    <script src="script.js"></script>
+  </body>
+</html>

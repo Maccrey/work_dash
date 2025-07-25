@@ -1,0 +1,908 @@
+body {
+  font-family: sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  background-color: #f0f0f0;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+body > h1 {
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 2.5em;
+}
+
+.main-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 20px;
+  width: 100%;
+  max-width: 1600px;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.dashboard-card {
+  text-align: center;
+  padding: 25px;
+  border-radius: 15px;
+  background-color: white;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+  width: 380px; /* Fixed width for all cards */
+  height: 600px; /* Fixed height for all cards */
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow: hidden;
+}
+
+/* Specific overrides for content within cards to fit the new size */
+#weather-card .tts-control,
+#weather-card button {
+  margin-top: auto;
+}
+
+#notes-card #note-list,
+#todo-card #todo-list,
+#done-card #done-list,
+#voice-memo-card #recordings-list {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+#todo-card #todo-form {
+  flex-direction: column;
+}
+
+#todo-card #todo-form input,
+#todo-card #todo-form select,
+#todo-card #todo-form button {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#attendance-card .attendance-daily-view,
+#attendance-card .attendance-monthly-summary {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+#attendance-card #daily-attendance-table {
+  font-size: 0.8em;
+}
+
+#attendance-card .attendance-controls {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.settings-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.settings-controls label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1em;
+  color: #333;
+}
+
+.settings-controls input[type="checkbox"] {
+  transform: scale(1.2);
+}
+
+/* Pomodoro Styles */
+.pomodoro-timer-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin: 20px 0;
+}
+
+#pomodoro-visual-timer {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: conic-gradient(red 0% 0%, #eee 0% 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8em;
+  color: transparent;
+}
+
+#pomodoro-digital-timer {
+  font-size: 3em;
+  font-weight: bold;
+  color: #333;
+  min-width: 150px;
+  text-align: center;
+}
+
+#pomodoro-status {
+  font-size: 1.2em;
+  color: #555;
+  margin-bottom: 15px;
+}
+
+.pomodoro-settings {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.pomodoro-settings label {
+  font-size: 1em;
+  color: #555;
+}
+
+.pomodoro-settings input[type="number"] {
+  width: 60px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1em;
+  text-align: center;
+}
+
+.pomodoro-settings button {
+  padding: 8px 15px;
+  font-size: 1em;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.pomodoro-settings button:hover {
+  background-color: #0056b3;
+}
+
+.pomodoro-controls button {
+  margin: 0 5px;
+  padding: 10px 20px;
+  font-size: 16px;
+}
+
+/* To-Do List Styles */
+#todo-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+#todo-form input,
+#todo-form select {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+#todo-form input[type="text"] {
+  flex-grow: 1;
+}
+
+#todo-form button {
+  background-color: #28a745;
+  padding: 36px 15px;
+}
+#todo-form button:hover {
+  background-color: #218838;
+}
+
+#todo-list,
+#done-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+}
+
+#todo-list li,
+#done-list li {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+#todo-list li .priority-tag {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.priority-high {
+  background-color: #dc3545;
+}
+.priority-medium {
+  background-color: #ffc107;
+}
+.priority-low {
+  background-color: #28a745;
+}
+
+#todo-list li .todo-item-text {
+  flex-grow: 1;
+  margin: 0 10px;
+}
+
+#done-list li {
+  color: #888;
+  text-decoration: line-through;
+}
+
+.todo-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 5px;
+}
+.todo-actions .complete-btn {
+  color: #28a745;
+}
+.todo-actions .delete-btn {
+  color: #dc3545;
+}
+
+/* Scratchpad/Notes Styles */
+#note-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+#note-input {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+#note-form button {
+  padding: 10px 15px;
+  font-size: 16px;
+  background-color: #007bff;
+}
+
+#note-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+#note-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+#note-list li .note-content {
+  flex-grow: 1;
+  margin-right: 10px;
+}
+
+#note-list li .note-timestamp {
+  white-space: nowrap;
+  color: #888;
+  font-size: 0.9em;
+}
+
+#note-list li .delete-note-btn {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 5px;
+  margin-left: 10px;
+}
+
+/* General Weather Styles */
+#weather-card h1 {
+  font-size: 2em;
+  margin-bottom: 10px;
+}
+#weather-card p#status {
+  font-size: 1em;
+  margin-bottom: 15px;
+}
+.hidden {
+  display: none;
+}
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 7px;
+  color: white;
+  transition: background-color 0.3s ease;
+}
+
+/* TTS Toggle Switch */
+.tts-control {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.todo-tts-control {
+  justify-content: flex-end;
+  margin-bottom: 15px;
+  margin-top: -15px;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.4s;
+}
+input:checked + .slider {
+  background-color: #2196f3;
+}
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196f3;
+}
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
+.slider.round {
+  border-radius: 18px;
+}
+.slider.round:before {
+  border-radius: 50%;
+}
+
+#weather-card #weather-info p {
+  font-size: 0.9em;
+  margin: 5px 0;
+}
+#weather-card #weather-info strong {
+  font-size: 0.9em;
+}
+#weather-card #hourly-forecast {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  margin-top: 5px;
+  width: 100%;
+  height: 130px;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: none;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 10px 5px;
+}
+#weather-card .forecast-item {
+  flex: 1;
+  max-width: 16%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
+  position: relative;
+  padding: 1px 2px;
+  height: 50%;
+}
+
+#weather-card .forecast-icon {
+  font-size: 30px;
+  margin-top: -15px;
+}
+#weather-card .bar-wrapper {
+  height: 5px;
+  margin: 0;
+}
+#weather-card .temp-label {
+  font-size: 0.7em;
+  color: #333;
+  margin-top: -15px;
+}
+#weather-card .forecast-time {
+  font-size: 0.6em;
+  color: #333;
+  margin-top: -15px;
+}
+#weather-card .tts-control {
+  margin-top: 4px;
+}
+#weather-card #toggleButton {
+  margin-top: 10px;
+  padding: 10px 20px;
+  font-size: 16px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .main-container {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+/* Attendance Tracker Styles */
+.attendance-tracker-container {
+  width: 100%;
+  margin-top: 20px;
+  padding: 25px;
+  border-radius: 15px;
+  background-color: white;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.attendance-tracker-container h2 {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.attendance-controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.attendance-controls button,
+.attendance-controls select {
+  padding: 10px 15px;
+  font-size: 1em;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  background-color: #f8f9fa;
+  transition: background-color 0.3s ease;
+}
+
+.attendance-controls button:hover {
+  background-color: #e2e6ea;
+}
+
+#check-in-btn {
+  background-color: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+#check-in-btn:hover {
+  background-color: #218838;
+}
+
+#check-out-btn {
+  background-color: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+#check-out-btn:hover {
+  background-color: #c82333;
+}
+
+.attendance-daily-view,
+.attendance-monthly-summary {
+  margin-top: 20px;
+  text-align: left;
+}
+
+.attendance-daily-view h3,
+.attendance-monthly-summary h3 {
+  margin-bottom: 15px;
+  color: #555;
+}
+
+#daily-attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+#daily-attendance-table th,
+#daily-attendance-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: center;
+}
+
+#daily-attendance-table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+.attendance-monthly-summary h3 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  color: #555;
+}
+
+#show-monthly-view-btn {
+  padding: 5px 10px;
+  font-size: 0.9em;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#show-monthly-view-btn:hover {
+  background-color: #0056b3;
+}
+
+/* Monthly Calendar View Styles */
+#monthly-calendar-view {
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: 15px;
+  background-color: white;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.calendar-header button {
+  padding: 8px 15px;
+  font-size: 1em;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.calendar-header button:hover {
+  background-color: #5a6268;
+}
+
+.calendar-header h4 {
+  margin: 0;
+  font-size: 1.5em;
+  color: #333;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #555;
+}
+
+.calendar-weekdays span {
+  padding: 5px 0;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+
+.calendar-day {
+  padding: 10px 5px;
+  border: 1px solid #eee;
+  border-radius: 5px;
+  text-align: center;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  font-size: 0.9em;
+  position: relative;
+}
+
+.calendar-day.empty {
+  background-color: #f9f9f9;
+  border: 1px solid #f9f9f9;
+}
+
+.calendar-day .date-number {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.calendar-day.weekend {
+  background-color: #fff3cd;
+}
+
+.calendar-day.holiday {
+  background-color: #f8d7da;
+  color: #dc3545;
+}
+
+.calendar-day.holiday .date-number {
+  color: #dc3545;
+}
+
+.calendar-day.today {
+  border: 2px solid #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+.calendar-day .status-icon {
+  font-size: 1.5em;
+  margin-top: 5px;
+}
+
+.calendar-day .work-time {
+  font-size: 0.8em;
+  color: #666;
+}
+
+.status-정상 {
+  color: #28a745;
+}
+.status-지각 {
+  color: #ffc107;
+}
+.status-조퇴 {
+  color: #fd7e14;
+}
+.status-병가 {
+  color: #6f42c1;
+}
+.status-무단결근 {
+  color: #dc3545;
+}
+.status-월차 {
+  color: #17a2b8;
+}
+
+/* Voice Memo Styles */
+.voice-memo-container {
+  text-align: center;
+  padding: 25px;
+  border-radius: 15px;
+  background-color: white;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+}
+
+.voice-memo-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.timer-display {
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #333;
+  min-width: 50px;
+}
+
+#recording-tag-input {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+#record-button {
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+#record-button.recording {
+  background-color: #c82333;
+}
+
+#recordings-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+}
+
+#recordings-list .recording-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+#recordings-list .recording-info {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 5px;
+  font-size: 0.9em;
+  color: #666;
+}
+
+#recordings-list .recording-tag {
+  background-color: #007bff;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8em;
+}
+
+#recordings-list .audio-controls {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+#recordings-list .playback-timer {
+  font-size: 0.9em;
+  color: #666;
+  margin-left: 10px;
+  min-width: 80px;
+}
+
+#recordings-list audio {
+  flex-grow: 1;
+  margin-right: 10px;
+  height: 40px;
+}
+
+#recordings-list .delete-recording-btn {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 5px;
+}
+
+/* Calculator Styles */
+#calculator-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 25px; /* Match other cards */
+    background-color: #333;
+    /* width and height will be inherited from .dashboard-card */
+}
+
+#calculator-card h2 {
+    color: #fff;
+    margin-bottom: 15px;
+}
+
+.calculator-display {
+    background-color: #222;
+    color: #0f0;
+    font-size: 2.5em;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: right;
+    margin-bottom: 20px;
+    white-space: normal;
+    word-wrap: break-word;
+    box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+.calculator-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 10px;
+    flex-grow: 1;
+}
+
+.calculator-button {
+    background-color: #555;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.44em; /* 20% smaller */
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.3);
+    padding: 0; /* Remove padding to let grid handle sizing */
+}
+
+.calculator-button:hover {
+    background-color: #777;
+}
+
+.calculator-button.operator {
+    background-color: #ff9500;
+}
+
+.calculator-button.operator:hover {
+    background-color: #cc7a00;
+}
+
+.calculator-button.clear {
+    background-color: #d9534f;
+}
+
+.calculator-button.clear:hover {
+    background-color: #c9302c;
+}
+
+.calculator-button.equals {
+    background-color: #007bff;
+    grid-row: 4 / span 2;
+    grid-column: 4 / 5;
+}
+
+.calculator-button.equals:hover {
+    background-color: #0056b3;
+}
+
+.calculator-button.number.zero {
+    grid-column: 1 / span 2;
+}
+
+.calculator-button.plus {
+    grid-row: 2 / span 2;
+    grid-column: 4 / 5;
+}
