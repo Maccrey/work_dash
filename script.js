@@ -756,9 +756,22 @@ document.addEventListener('DOMContentLoaded', () => {
     checkOutBtn.addEventListener('click', checkOut);
     applyStatusBtn.addEventListener('click', applyStatus);
     showMonthlyViewBtn.addEventListener('click', () => {
+        const monthlySummaryDiv = document.querySelector('.attendance-monthly-summary');
+        const summaryCard = document.getElementById('attendance-summary-card');
+
+        // Toggle classes to trigger animations and state changes
+        summaryCard.classList.toggle('calendar-visible');
         monthlyCalendarView.classList.toggle('hidden');
-        if (!monthlyCalendarView.classList.contains('hidden')) {
+
+        if (summaryCard.classList.contains('calendar-visible')) {
+            // Calendar is now visible, collapse summary
+            showMonthlyViewBtn.textContent = '달력 닫기';
+            monthlySummaryDiv.style.maxHeight = '55px'; // Only show the title
             renderMonthlyCalendar(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth());
+        } else {
+            // Calendar is hidden, expand summary
+            showMonthlyViewBtn.textContent = '월 현황';
+            monthlySummaryDiv.style.maxHeight = '300px'; // Expand to show all content
         }
     });
     prevMonthBtn.addEventListener('click', () => {
