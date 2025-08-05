@@ -28,6 +28,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const noteList = document.getElementById('note-list');
     const ttsToggle = document.getElementById('tts-toggle');
     const todoTtsToggle = document.getElementById('todo-tts-toggle');
+    const ttsTimeInput = document.getElementById('tts-time-input');
+    const ttsTextInput = document.getElementById('tts-text-input');
+    const addTtsScheduleBtn = document.getElementById('add-tts-schedule-btn');
+    const ttsScheduleList = document.getElementById('tts-schedule-list');
+    const ttsPresetButtons = document.querySelector('.tts-preset-buttons');
+    const workBreakScheduleModal = document.getElementById('work-break-schedule-modal');
+    const setupWorkBreakScheduleBtn = document.getElementById('setup-work-break-schedule-btn');
+    const closeBtn = workBreakScheduleModal.querySelector('.close-button');
+    const saveWorkBreakScheduleBtn = document.getElementById('save-work-break-schedule-btn');
 
     // Attendance Tracker Elements
     const checkInBtn = document.getElementById('check-in-btn');
@@ -75,6 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let minuteInterval = null;
     let weatherInterval = null;
     let userCoords = null;
+    let previousHourlyForecast = [];
     let todos = [];
     let notes = [];
     let attendanceRecords = {};
@@ -104,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // TTS State
     let isTtsEnabled = true;
     let isTodoTtsEnabled = true;
+    let ttsSchedules = [];
 
     // --- Utility Functions ---
     const formatTime = (seconds) => {
@@ -112,8 +123,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${m}:${s}`;
     };
 
-    const speak = (text) => {
-        if (!isTtsEnabled) return;
+    const speak = (text, force = false) => {
+        if (!isTtsEnabled && !force) return;
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'ko-KR';
         speechSynthesis.speak(utterance);
@@ -199,6 +210,92 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // --- TTS Schedule Functions ---
+    const renderTtsSchedules = () => {
+        ttsScheduleList.innerHTML = '';
+        const sortedSchedules = ttsSchedules.sort((a, b) => a.time.localeCompare(b.time));
+        sortedSchedules.forEach(schedule => {
+            const li = document.createElement('li');
+            li.dataset.id = schedule.id;
+            li.innerHTML = `
+                <strong>${schedule.time}</strong>
+                <span>${schedule.text}</span>
+                <button class="delete-tts-btn">❌</button>
+            `;
+            ttsScheduleList.appendChild(li);
+        });
+    };
+
+    const addTtsSchedule = (time, text) => {
+        if (ttsSchedules.some(s => s.time === time && s.text === text)) return; // Prevent duplicates
+        ttsSchedules.push({ id: Date.now(), time, text, notified: false });
+        saveData('ttsSchedules', ttsSchedules);
+        renderTtsSchedules();
+    };
+
+    const deleteTtsSchedule = (id) => {
+        ttsSchedules = ttsSchedules.filter(s => s.id !== id);
+        saveData('ttsSchedules', ttsSchedules);
+        renderTtsSchedules();
+    };
+
+    
+
+    const generateWorkBreakSchedules = () => {
+        const workStartTime = document.getElementById('work-start-time').value;
+        const workEndTime = document.getElementById('work-end-time').value;
+        const workDuration = parseInt(document.getElementById('work-duration-input').value);
+        const breakDuration = parseInt(document.getElementById('break-duration-input').value);
+        const lunchStartTime = document.getElementById('lunch-start-time').value;
+        const lunchEndTime = document.getElementById('lunch-end-time').value;
+
+        if (!workStartTime || !workEndTime || isNaN(workDuration) || isNaN(breakDuration) || !lunchStartTime || !lunchEndTime) {
+            alert('모든 값을 올바르게 입력해주세요.');
+            return;
+        }
+
+        const timeToMinutes = (time) => {
+            const [hours, minutes] = time.split(':').map(Number);
+            return hours * 60 + minutes;
+        };
+
+        const minutesToTime = (minutes) => {
+            const h = Math.floor(minutes / 60).toString().padStart(2, '0');
+            const m = (minutes % 60).toString().padStart(2, '0');
+            return `${h}:${m}`;
+        };
+
+        let currentTime = timeToMinutes(workStartTime);
+        const endTime = timeToMinutes(workEndTime);
+        const lunchStart = timeToMinutes(lunchStartTime);
+        const lunchEnd = timeToMinutes(lunchEndTime);
+
+        addTtsSchedule(workStartTime, '업무를 시작할 시간입니다. 화이팅!');
+
+        while (currentTime < endTime) {
+            const breakTimeStart = currentTime + workDuration;
+            if (breakTimeStart >= endTime) break;
+
+            if (!(breakTimeStart >= lunchStart && breakTimeStart < lunchEnd)) {
+                addTtsSchedule(minutesToTime(breakTimeStart), `${breakDuration}분간 휴식시간입니다.`);
+            }
+
+            const workTimeStart = breakTimeStart + breakDuration;
+            if (workTimeStart >= endTime) break;
+
+            if (!(workTimeStart >= lunchStart && workTimeStart < lunchEnd)) {
+                addTtsSchedule(minutesToTime(workTimeStart), '휴식시간이 종료되었습니다.');
+            }
+            currentTime = workTimeStart;
+        }
+
+        addTtsSchedule(workEndTime, '업무를 종료할 시간입니다. 수고하셨습니다.');
+        addTtsSchedule(lunchStartTime, '점심시간입니다. 맛있게 드세요.');
+        addTtsSchedule(lunchEndTime, '점심시간이 종료되었습니다.');
+
+        workBreakScheduleModal.classList.add('hidden');
+    };
+
     // --- Weather Functions ---
     async function getWeatherData(x, y) {
         const now = new Date();
@@ -266,38 +363,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function updateWeatherUI() {
-        if (!userCoords) return;
-        const { latitude, longitude } = userCoords;
-        const { x, y } = toGrid(latitude, longitude);
-        const weatherData = await getWeatherData(x, y);
+    if (!userCoords) return;
+    const { latitude, longitude } = userCoords;
+    const { x, y } = toGrid(latitude, longitude);
+    const weatherData = await getWeatherData(x, y);
 
-        if (weatherData) {
-            const { currentWeather, currentTemp, hourlyForecast } = weatherData;
-            weatherInfoElem.classList.remove('hidden');
-            currentWeatherElem.textContent = `${currentWeather || '정보 없음'} ${getWeatherIcon(currentWeather)}`;
-            currentTempElem.textContent = currentTemp || '정보 없음';
+    if (weatherData) {
+        const { currentWeather, currentTemp, hourlyForecast } = weatherData;
 
-            hourlyForecastElem.innerHTML = '';
-            if (hourlyForecast.length > 0) {
-                const temps = hourlyForecast.map(f => f.temp);
-                const minTemp = Math.min(...temps) - 2;
-                const maxTemp = Math.max(...temps) + 2;
-
-                hourlyForecast.forEach(forecast => {
-                    const forecastItem = document.createElement('div');
-                    forecastItem.classList.add('forecast-item');
-                    const barHeight = ((forecast.temp - minTemp) / (maxTemp - minTemp)) * 100;
-                    forecastItem.innerHTML = `
-                        <div class="forecast-icon">${getWeatherIcon(forecast.weather)}</div>
-                        <div class="bar-wrapper"><div class="temp-bar" style="height: ${barHeight}%;"></div></div>
-                        <div class="temp-label">${forecast.temp}℃</div>
-                        <div class="forecast-time">${forecast.time}</div>
-                    `;
-                    hourlyForecastElem.appendChild(forecastItem);
-                });
+        // Compare with previous forecast and notify if changed
+        if (previousHourlyForecast.length > 0) {
+            for (let i = 0; i < hourlyForecast.length; i++) {
+                if (i < previousHourlyForecast.length && hourlyForecast[i].weather !== previousHourlyForecast[i].weather) {
+                    const changedForecast = hourlyForecast[i];
+                    const message = `날씨가 변경되었습니다. ${changedForecast.time}부터 ${changedForecast.weather}입니다.`;
+                    speak(message, true); // Force speak for weather change
+                    break; // Notify only for the first change
+                }
             }
         }
+
+        previousHourlyForecast = [...hourlyForecast]; // Update previous forecast
+        saveData('previousHourlyForecast', previousHourlyForecast);
+
+        weatherInfoElem.classList.remove('hidden');
+        currentWeatherElem.textContent = `${currentWeather || '정보 없음'} ${getWeatherIcon(currentWeather)}`;
+        currentTempElem.textContent = currentTemp || '정보 없음';
+
+        hourlyForecastElem.innerHTML = '';
+        if (hourlyForecast.length > 0) {
+            const temps = hourlyForecast.map(f => f.temp);
+            const minTemp = Math.min(...temps) - 2;
+            const maxTemp = Math.max(...temps) + 2;
+
+            hourlyForecast.forEach(forecast => {
+                const forecastItem = document.createElement('div');
+                forecastItem.classList.add('forecast-item');
+                const barHeight = ((forecast.temp - minTemp) / (maxTemp - minTemp)) * 100;
+                forecastItem.innerHTML = `
+                    <div class="forecast-icon">${getWeatherIcon(forecast.weather)}</div>
+                    <div class="bar-wrapper"><div class="temp-bar" style="height: ${barHeight}%;"></div></div>
+                    <div class="temp-label">${forecast.temp}℃</div>
+                    <div class="forecast-time">${forecast.time}</div>
+                `;
+                hourlyForecastElem.appendChild(forecastItem);
+            });
+        }
     }
+}
 
     // --- To-Do Functions ---
     const renderTodos = () => {
@@ -445,8 +558,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="recording-tag">${rec.tag}</span>
                     <span class="recording-timestamp">${rec.timestamp}</span>
                 </div>
-                <audio controls src="${rec.audioURL}"></audio>
-                <button class="delete-recording-btn" data-id="${rec.id}">❌</button>
+                <div class="audio-controls">
+                    <audio controls src="${rec.audioURL}"></audio>
+                    <button class="delete-recording-btn" data-id="${rec.id}">❌</button>
+                </div>
             `;
             recordingsList.appendChild(recElement);
         });
@@ -680,19 +795,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (changed) saveData('todos', todos);
         }
 
-        const notifications = {
-            '11:48': "점심시간입니다. 맛있게 드세요",
-            '17:30': "오늘의 업무를 정리하시고 퇴근준비를 해주세요"
-        };
-        if (notifications[currentTime]) speak(notifications[currentTime]);
-
-        if (now.getMinutes() === 48 && now.getHours() >= 9 && now.getHours() < 18 && now.getHours() !== 11) {
-            updateWeatherUI().then(() => {
-                if (currentWeatherElem.textContent !== '정보 없음') speak(`현재 날씨는 ${currentWeatherElem.textContent}입니다. 10분간 쉬는 시간입니다.`);
+        if (isTtsEnabled) {
+            let changed = false;
+            ttsSchedules.forEach(schedule => {
+                if (!schedule.notified && schedule.time === currentTime) {
+                    speak(schedule.text, true);
+                    schedule.notified = true; // Mark as notified for today
+                    changed = true;
+                }
             });
-        }
-        if (now.getMinutes() === 0 && now.getHours() >= 9 && now.getHours() < 18 && now.getHours() !== 12) {
-            speak("10분 휴식시간이 종료되었습니다. 화이팅!");
+            if (changed) saveData('ttsSchedules', ttsSchedules);
+
+            // Reset notification status at midnight
+            if (currentTime === '00:00') {
+                ttsSchedules.forEach(schedule => schedule.notified = false);
+                saveData('ttsSchedules', ttsSchedules);
+            }
         }
     };
 
@@ -720,6 +838,8 @@ document.addEventListener('DOMContentLoaded', () => {
         clearInterval(weatherInterval);
         clearInterval(minuteInterval);
         userCoords = null;
+        previousHourlyForecast = []; // Reset previous forecast
+        saveData('previousHourlyForecast', []); // Clear from storage
         toggleButton.textContent = '알림 시작';
         statusElem.textContent = '알림이 멈췄습니다. 시작 버튼을 눌러주세요.';
         weatherInfoElem.classList.add('hidden');
@@ -751,6 +871,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     ttsToggle.addEventListener('change', (e) => { isTtsEnabled = e.target.checked; saveData('ttsEnabled', isTtsEnabled); });
+    addTtsScheduleBtn.addEventListener('click', () => {
+        if (ttsTimeInput.value && ttsTextInput.value) {
+            addTtsSchedule(ttsTimeInput.value, ttsTextInput.value);
+            ttsTimeInput.value = '';
+            ttsTextInput.value = '';
+        }
+    });
+    ttsScheduleList.addEventListener('click', (e) => {
+        if (e.target.classList.contains('delete-tts-btn')) {
+            deleteTtsSchedule(Number(e.target.closest('li').dataset.id));
+        }
+    });
+    ttsPresetButtons.addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+            const preset = e.target.dataset.preset;
+            if (preset) {
+                addPresetTtsSchedules(preset);
+            }
+        }
+    });
+
+    setupWorkBreakScheduleBtn.addEventListener('click', () => {
+        workBreakScheduleModal.classList.remove('hidden');
+    });
+
+    closeBtn.addEventListener('click', () => {
+        workBreakScheduleModal.classList.add('hidden');
+    });
+
+    saveWorkBreakScheduleBtn.addEventListener('click', generateWorkBreakSchedules);
+
+    window.addEventListener('click', (e) => {
+        if (e.target === workBreakScheduleModal) {
+            workBreakScheduleModal.classList.add('hidden');
+        }
+    });
     todoTtsToggle.addEventListener('change', (e) => { isTodoTtsEnabled = e.target.checked; saveData('todoTtsEnabled', isTodoTtsEnabled); });
     checkInBtn.addEventListener('click', checkIn);
     checkOutBtn.addEventListener('click', checkOut);
@@ -805,6 +961,8 @@ document.addEventListener('DOMContentLoaded', () => {
         todos = loadData('todos') || [];
         notes = loadData('notes') || [];
         recordings = loadData('voiceRecordings') || [];
+        ttsSchedules = loadData('ttsSchedules') || [];
+        previousHourlyForecast = loadData('previousHourlyForecast') || [];
         attendanceRecords = loadData('attendanceRecords') || {};
         isTtsEnabled = loadData('ttsEnabled') ?? true;
         isTodoTtsEnabled = loadData('todoTtsEnabled') ?? true;
@@ -815,7 +973,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         cardVisibility = loadData('cardVisibility') || {
             weather: true, notes: true, voiceMemo: true, pomodoro: true, todo: true,
-            done: true, attendance: true, attendanceSummary: true, calculator: true
+            done: true, attendance: true, attendanceSummary: true, calculator: true, 'tts-notifier': true
         };
 
         // 2. Fetch remote data
@@ -829,6 +987,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTodos();
         renderNotes();
         renderRecordings();
+        renderTtsSchedules();
         renderAttendance();
         updatePomoTimer();
         updateCardVisibility();

@@ -346,10 +346,13 @@ button {
 /* TTS Toggle Switch */
 .tts-control {
   display: flex;
-  justify-content: center;
+  justify-content: space-between; /* 변경 */
   align-items: center;
   margin-top: 20px;
   gap: 10px;
+  width: 100%; /* 추가 */
+  padding: 0 10px; /* 추가 */
+  box-sizing: border-box; /* 추가 */
 }
 
 .todo-tts-control {
@@ -468,12 +471,156 @@ input:checked + .slider:before {
   font-size: 16px;
 }
 
+/* TTS Notifier Card Styles */
+.tts-schedule-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tts-schedule-form input,
+.tts-schedule-form button {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.tts-schedule-form button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+}
+
+.tts-schedule-form button:hover {
+    background-color: #218838;
+}
+
+.tts-preset-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.tts-preset-buttons button {
+    padding: 10px 15px;
+    font-size: 16px;
+    background-color: #6c757d;
+}
+
+#tts-schedule-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex-grow: 1;
+    overflow-y: auto;
+    text-align: left;
+}
+
+#tts-schedule-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+#tts-schedule-list li strong {
+    margin-right: 10px;
+}
+
+#tts-schedule-list li span {
+    flex-grow: 1;
+}
+
+#tts-schedule-list li .delete-tts-btn {
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 5px;
+}
+
+
 /* Responsive adjustments */
 @media (max-width: 1200px) {
   .main-container {
     flex-direction: column;
     align-items: center;
   }
+}
+
+/* Modal Styles */
+.modal {
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+  max-width: 500px;
+  border-radius: 10px;
+  position: relative;
+}
+
+.close-button {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close-button:hover,
+.close-button:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.modal-form label {
+  font-weight: bold;
+}
+
+.modal-form input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+.modal-form button {
+  padding: 10px 15px;
+  font-size: 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.modal-form button:hover {
+  background-color: #0056b3;
 }
 
 /* Attendance Tracker Styles */
@@ -822,17 +969,11 @@ input:checked + .slider:before {
   width: 100%;
 }
 
-#recordings-list .playback-timer {
-  font-size: 0.9em;
-  color: #666;
-  margin-left: 10px;
-  min-width: 80px;
-}
-
 #recordings-list audio {
   flex-grow: 1;
   margin-right: 10px;
   height: 40px;
+  width: 80%;
 }
 
 #recordings-list .delete-recording-btn {
