@@ -38,6 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeBtn = workBreakScheduleModal.querySelector('.close-button');
     const saveWorkBreakScheduleBtn = document.getElementById('save-work-break-schedule-btn');
 
+    // Settings Modal Elements
+    const settingsIcon = document.getElementById('settings-icon');
+    const settingsModal = document.getElementById('settings-modal');
+    const settingsCloseBtn = settingsModal.querySelector('.close-button');
+    const settingsCheckboxes = document.querySelectorAll('#settings-modal .settings-controls input[type="checkbox"]');
+    const clearAllDataBtn = document.getElementById('clear-all-data-btn');
+
     // Attendance Tracker Elements
     const checkInBtn = document.getElementById('check-in-btn');
     const checkOutBtn = document.getElementById('check-out-btn');
@@ -160,6 +167,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveData = (key, data) => localStorage.setItem(key, JSON.stringify(data));
     const loadData = (key) => JSON.parse(localStorage.getItem(key));
 
+    const clearAllData = () => {
+        const keysToClear = [
+            'todos', 'notes', 'voiceRecordings', 'ttsSchedules', 'previousHourlyForecast',
+            'attendanceRecords', 'ttsEnabled', 'todoTtsEnabled', 'pomoSettings',
+            'cardVisibility', 'cardOrder'
+        ];
+        keysToClear.forEach(key => localStorage.removeItem(key));
+
+        // Reset global state variables
+        todos = [];
+        notes = [];
+        recordings = [];
+        ttsSchedules = [];
+        previousHourlyForecast = [];
+        attendanceRecords = {};
+        isTtsEnabled = true;
+        isTodoTtsEnabled = true;
+        workDuration = 25;
+        breakDuration = 5;
+        cardVisibility = {};
+        expression = '0';
+
+        // Re-initialize and re-render UI
+        initializeApp();
+        alert('모든 데이터가 성공적으로 삭제되었습니다.');
+    };
+
     // --- Card Visibility Functions ---
     const updateCardVisibility = () => {
         Object.keys(cardVisibility).forEach(key => {
@@ -172,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const setupCardVisibilityListeners = () => {
-        document.querySelectorAll('#settings-card input[type="checkbox"]').forEach(checkbox => {
+        settingsCheckboxes.forEach(checkbox => {
             checkbox.addEventListener('change', (e) => {
                 const cardName = e.target.id.replace('toggle-', '').replace('-card', '');
                 cardVisibility[cardName] = e.target.checked;
@@ -238,8 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
         saveData('ttsSchedules', ttsSchedules);
         renderTtsSchedules();
     };
-
-    
 
     const generateWorkBreakSchedules = () => {
         const workStartTime = document.getElementById('work-start-time').value;
@@ -315,7 +347,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const response = await fetch(url);
-            const data = await response.json();
+            const responseText = await response.text(); // Read as text first
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (jsonError) {
+                console.error('JSON parsing error:', jsonError);
+                console.error('Raw API response:', responseText);
+                throw new Error('Invalid JSON response from API');
+            }
+
             if (data.response.header.resultCode !== '00') throw new Error(`API Error: ${data.response.header.resultMsg}`);
             if (!data.response.body?.items?.item) throw new Error('No weather data in API response.');
 
@@ -591,9 +632,13 @@ document.addEventListener('DOMContentLoaded', () => {
             mediaRecorder.addEventListener('dataavailable', e => audioChunks.push(e.data));
             mediaRecorder.addEventListener('stop', () => {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                const audioUrl = URL.createObjectURL(audioBlob);
-                saveRecording(audioUrl);
-                stream.getTracks().forEach(track => track.stop());
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64data = reader.result;
+                    saveRecording(base64data);
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                reader.readAsDataURL(audioBlob);
             });
             mediaRecorder.start();
             recordButton.textContent = '녹음 중지';
@@ -847,6 +892,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Event Listeners ---
     toggleButton.addEventListener('click', () => isWeatherSystemActive ? stopSystem() : startSystem());
+    checkInBtn.addEventListener('click', checkIn);
+    checkOutBtn.addEventListener('click', checkOut);
+    applyStatusBtn.addEventListener('click', applyStatus);
+    showMonthlyViewBtn.addEventListener('click', () => {
+        monthlyCalendarView.classList.toggle('hidden');
+        if (!monthlyCalendarView.classList.contains('hidden')) {
+            renderMonthlyCalendar(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth());
+        }
+    });
+    prevMonthBtn.addEventListener('click', () => {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+        renderMonthlyCalendar(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth());
+    });
+    nextMonthBtn.addEventListener('click', () => {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+        renderMonthlyCalendar(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth());
+    });
     todoForm.addEventListener('submit', (e) => {
         e.preventDefault();
         if (todoTimeInput.value && todoTextInput.value) {
@@ -887,7 +949,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.tagName === 'BUTTON') {
             const preset = e.target.dataset.preset;
             if (preset) {
-                addPresetTtsSchedules(preset);
+                // addPresetTtsSchedules(preset); // Removed as per user request
             }
         }
     });
@@ -907,52 +969,35 @@ document.addEventListener('DOMContentLoaded', () => {
             workBreakScheduleModal.classList.add('hidden');
         }
     });
-    todoTtsToggle.addEventListener('change', (e) => { isTodoTtsEnabled = e.target.checked; saveData('todoTtsEnabled', isTodoTtsEnabled); });
-    checkInBtn.addEventListener('click', checkIn);
-    checkOutBtn.addEventListener('click', checkOut);
-    applyStatusBtn.addEventListener('click', applyStatus);
-    showMonthlyViewBtn.addEventListener('click', () => {
-        const monthlySummaryDiv = document.querySelector('.attendance-monthly-summary');
-        const summaryCard = document.getElementById('attendance-summary-card');
 
-        // Toggle classes to trigger animations and state changes
-        summaryCard.classList.toggle('calendar-visible');
-        monthlyCalendarView.classList.toggle('hidden');
+    // Settings Modal Event Listeners
+    settingsIcon.addEventListener('click', () => {
+        settingsModal.classList.remove('hidden');
+    });
 
-        if (summaryCard.classList.contains('calendar-visible')) {
-            // Calendar is now visible, collapse summary
-            showMonthlyViewBtn.textContent = '달력 닫기';
-            monthlySummaryDiv.style.maxHeight = '55px'; // Only show the title
-            renderMonthlyCalendar(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth());
-        } else {
-            // Calendar is hidden, expand summary
-            showMonthlyViewBtn.textContent = '월 현황';
-            monthlySummaryDiv.style.maxHeight = '300px'; // Expand to show all content
+    settingsCloseBtn.addEventListener('click', () => {
+        settingsModal.classList.add('hidden');
+    });
+
+    window.addEventListener('click', (e) => {
+        if (e.target === settingsModal) {
+            settingsModal.classList.add('hidden');
         }
     });
-    prevMonthBtn.addEventListener('click', () => {
-        currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
-        renderMonthlyCalendar(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth());
+
+    clearAllDataBtn.addEventListener('click', () => {
+        if (confirm('정말로 모든 데이터를 지우시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+            clearAllData();
+        }
     });
-    nextMonthBtn.addEventListener('click', () => {
-        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
-        renderMonthlyCalendar(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth());
-    });
-    calculatorButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const text = button.textContent;
-            if (button.classList.contains('number')) handleNumberClick(text);
-            else if (button.classList.contains('operator')) handleOperatorClick(text);
-            else if (button.classList.contains('equals')) handleEqualsClick();
-            else if (button.classList.contains('clear')) handleClearClick();
-            else if (button.classList.contains('decimal')) handleDecimalClick();
+
+    // Initialize card visibility listeners
+    settingsCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+            const cardName = e.target.id.replace('toggle-', '').replace('-card', '');
+            cardVisibility[cardName] = e.target.checked;
+            updateCardVisibility();
         });
-    });
-    recordButton.addEventListener('click', () => (mediaRecorder && mediaRecorder.state === 'recording') ? stopRecording() : startRecording());
-    recordingsList.addEventListener('click', (e) => {
-        if (e.target.classList.contains('delete-recording-btn')) {
-            deleteRecording(Number(e.target.dataset.id));
-        }
     });
 
     // --- Initialization & App Start ---
@@ -971,10 +1016,17 @@ document.addEventListener('DOMContentLoaded', () => {
             workDuration = pomoSettings.work;
             breakDuration = pomoSettings.break;
         }
-        cardVisibility = loadData('cardVisibility') || {
-            weather: true, notes: true, voiceMemo: true, pomodoro: true, todo: true,
-            done: true, attendance: true, attendanceSummary: true, calculator: true, 'tts-notifier': true
-        };
+        cardVisibility = loadData('cardVisibility') || {};
+        // Ensure all cards are in cardVisibility with a default true value
+        const allCardIds = [
+            'weather', 'tts-notifier', 'notes', 'voiceMemo', 'pomodoro', 
+            'todo', 'done', 'calculator', 'attendance', 'attendanceSummary'
+        ];
+        allCardIds.forEach(id => {
+            if (cardVisibility[id] === undefined) {
+                cardVisibility[id] = true;
+            }
+        });
 
         // 2. Fetch remote data
         await Promise.all([
@@ -997,10 +1049,14 @@ document.addEventListener('DOMContentLoaded', () => {
         todoTtsToggle.checked = isTodoTtsEnabled;
         workTimeInput.value = workDuration;
         breakTimeInput.value = breakDuration;
-        Object.keys(cardVisibility).forEach(key => {
-            const checkbox = document.getElementById(`toggle-${key}-card`);
-            if (checkbox) checkbox.checked = cardVisibility[key];
+        // Initialize settings modal checkboxes
+        settingsCheckboxes.forEach(checkbox => {
+            const cardName = checkbox.id.replace('toggle-', '').replace('-card', '');
+            checkbox.checked = cardVisibility[cardName] ?? true;
         });
+
+        // Setup card visibility listeners after initialization
+        setupCardVisibilityListeners();
     }
 
     // --- Drag and Drop & Card Order ---
@@ -1058,6 +1114,5 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Start the application
-    setupCardVisibilityListeners();
     initializeApp();
 });
