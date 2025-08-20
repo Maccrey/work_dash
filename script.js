@@ -175,7 +175,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const keysToClear = [
             'todos', 'notes', 'voiceRecordings', 'ttsSchedules', 'previousHourlyForecast',
             'attendanceRecords', 'ttsEnabled', 'todoTtsEnabled', 'pomoSettings',
-            'cardVisibility', 'cardOrder'
+            'cardVisibility', 'cardOrder', 'goals', 'timeEntries', 'achievements', 'projects', 'focusTime',
+            'expenses', 'budgets', 'meetings', 'deadlines', 'taskTemplates', 'leaves',
+            'contacts', 'feedbacks', 'handovers', 'learningPlans', 'skills', 'books'
         ];
         keysToClear.forEach(key => localStorage.removeItem(key));
 
@@ -193,6 +195,24 @@ document.addEventListener('DOMContentLoaded', () => {
         cardVisibility = {};
         expression = '0';
         currentTodoDate = new Date();
+        goals = [];
+        timeEntries = [];
+        achievements = [];
+        projects = [];
+        focusStartTime = null;
+        totalFocusTime = 0;
+        expenses = [];
+        budgets = [];
+        meetings = [];
+        deadlines = [];
+        taskTemplates = [];
+        leaves = [];
+        contacts = [];
+        feedbacks = [];
+        handovers = [];
+        learningPlans = [];
+        skills = [];
+        books = [];
 
         // Re-initialize and re-render UI
         initializeApp();
@@ -1062,6 +1082,1427 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // --- 새로운 카드들 State ---
+    let goals = [];
+    let timeEntries = [];
+    let achievements = [];
+    let projects = [];
+    let focusStartTime = null;
+    let totalFocusTime = 0;
+    
+    // 재무 관리
+    let expenses = [];
+    let budgets = [];
+    
+    // 업무 조직
+    let meetings = [];
+    let deadlines = [];
+    let taskTemplates = [];
+    let leaves = [];
+    let annualLeaveTotal = 15;
+    
+    // 협업 소통
+    let contacts = [];
+    let feedbacks = [];
+    let handovers = [];
+    
+    // 성장 학습
+    let learningPlans = [];
+    let skills = [];
+    let books = [];
+    
+    // 유틸리티
+    const unitConversions = {
+        length: {
+            mm: 1, cm: 10, m: 1000, km: 1000000, inch: 25.4, ft: 304.8, yard: 914.4, mile: 1609344
+        },
+        weight: {
+            mg: 1, g: 1000, kg: 1000000, ton: 1000000000, oz: 28349.5, lb: 453592
+        },
+        temperature: {},
+        area: {
+            'mm²': 1, 'cm²': 100, 'm²': 1000000, 'km²': 1000000000000, 'in²': 645.16, 'ft²': 92903.04
+        }
+    };
+
+    // --- 데이터 관리 및 분석 카드 Functions ---
+    
+    // Goal Tracker Functions
+    const addGoal = () => {
+        const period = document.getElementById('goal-period').value;
+        const title = document.getElementById('goal-title').value.trim();
+        const target = parseInt(document.getElementById('goal-target').value);
+        const unit = document.getElementById('goal-unit').value.trim();
+        
+        if (!title || !target || !unit) return;
+        
+        const goal = {
+            id: Date.now(),
+            period,
+            title,
+            target,
+            unit,
+            current: 0,
+            createdAt: new Date().toISOString()
+        };
+        
+        goals.push(goal);
+        saveData('goals', goals);
+        renderGoals();
+        
+        document.getElementById('goal-title').value = '';
+        document.getElementById('goal-target').value = '';
+        document.getElementById('goal-unit').value = '';
+    };
+
+    const updateGoalProgress = (goalId, increment = 1) => {
+        const goal = goals.find(g => g.id === goalId);
+        if (goal) {
+            goal.current = Math.min(goal.current + increment, goal.target);
+            saveData('goals', goals);
+            renderGoals();
+        }
+    };
+
+    const renderGoals = () => {
+        const goalsList = document.getElementById('goals-list');
+        if (!goalsList) return;
+        
+        goalsList.innerHTML = goals.map(goal => {
+            const progress = Math.round((goal.current / goal.target) * 100);
+            return `
+                <div class="goal-item">
+                    <div class="goal-header">
+                        <span class="goal-title">${goal.title}</span>
+                        <span class="goal-period">${goal.period === 'daily' ? '일일' : goal.period === 'weekly' ? '주간' : '월간'}</span>
+                    </div>
+                    <div class="goal-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                        <span class="progress-text">${goal.current}/${goal.target} ${goal.unit} (${progress}%)</span>
+                    </div>
+                    <div class="goal-actions">
+                        <button onclick="updateGoalProgress(${goal.id}, 1)">+1</button>
+                        <button onclick="updateGoalProgress(${goal.id}, -1)">-1</button>
+                        <button onclick="deleteGoal(${goal.id})" class="delete-btn">삭제</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    };
+
+    const deleteGoal = (goalId) => {
+        goals = goals.filter(g => g.id !== goalId);
+        saveData('goals', goals);
+        renderGoals();
+    };
+
+    // Time Analysis Functions
+    const addTimeEntry = () => {
+        const projectName = document.getElementById('project-name').value.trim();
+        const startTime = document.getElementById('start-time').value;
+        const endTime = document.getElementById('end-time').value;
+        const description = document.getElementById('work-description').value.trim();
+        
+        if (!projectName || !startTime || !endTime) return;
+        
+        const entry = {
+            id: Date.now(),
+            project: projectName,
+            startTime,
+            endTime,
+            description,
+            date: new Date().toISOString().split('T')[0],
+            duration: calculateDuration(startTime, endTime)
+        };
+        
+        timeEntries.push(entry);
+        saveData('timeEntries', timeEntries);
+        renderTimeEntries();
+        updateTimeSummary();
+        
+        document.getElementById('project-name').value = '';
+        document.getElementById('start-time').value = '';
+        document.getElementById('end-time').value = '';
+        document.getElementById('work-description').value = '';
+    };
+
+    const calculateDuration = (start, end) => {
+        const startDate = new Date(`2000-01-01T${start}`);
+        const endDate = new Date(`2000-01-01T${end}`);
+        return Math.round((endDate - startDate) / (1000 * 60));
+    };
+
+    const renderTimeEntries = () => {
+        const entriesList = document.getElementById('time-entries-list');
+        if (!entriesList) return;
+        
+        const today = new Date().toISOString().split('T')[0];
+        const todayEntries = timeEntries.filter(entry => entry.date === today);
+        
+        entriesList.innerHTML = todayEntries.map(entry => `
+            <div class="time-entry-item">
+                <div class="entry-header">
+                    <span class="project-name">${entry.project}</span>
+                    <span class="duration">${Math.floor(entry.duration / 60)}h ${entry.duration % 60}m</span>
+                </div>
+                <div class="entry-time">${entry.startTime} - ${entry.endTime}</div>
+                <div class="entry-description">${entry.description}</div>
+                <button onclick="deleteTimeEntry(${entry.id})" class="delete-btn">삭제</button>
+            </div>
+        `).join('');
+    };
+
+    const updateTimeSummary = () => {
+        const summaryDiv = document.getElementById('daily-time-summary');
+        if (!summaryDiv) return;
+        
+        const today = new Date().toISOString().split('T')[0];
+        const todayEntries = timeEntries.filter(entry => entry.date === today);
+        
+        const projectSummary = {};
+        todayEntries.forEach(entry => {
+            if (!projectSummary[entry.project]) {
+                projectSummary[entry.project] = 0;
+            }
+            projectSummary[entry.project] += entry.duration;
+        });
+        
+        summaryDiv.innerHTML = Object.entries(projectSummary).map(([project, duration]) => `
+            <div class="project-summary">
+                <span class="project-name">${project}</span>
+                <span class="project-time">${Math.floor(duration / 60)}h ${duration % 60}m</span>
+            </div>
+        `).join('');
+    };
+
+    const deleteTimeEntry = (entryId) => {
+        timeEntries = timeEntries.filter(entry => entry.id !== entryId);
+        saveData('timeEntries', timeEntries);
+        renderTimeEntries();
+        updateTimeSummary();
+    };
+
+    // Productivity Metrics Functions
+    const startFocusSession = () => {
+        if (focusStartTime) {
+            const duration = Math.floor((Date.now() - focusStartTime) / (1000 * 60));
+            totalFocusTime += duration;
+            saveData('focusTime', { total: totalFocusTime, date: new Date().toISOString().split('T')[0] });
+            focusStartTime = null;
+            document.getElementById('start-focus-session').textContent = '집중 세션 시작';
+        } else {
+            focusStartTime = Date.now();
+            document.getElementById('start-focus-session').textContent = '집중 세션 종료';
+        }
+        updateProductivityMetrics();
+    };
+
+    const logAchievement = () => {
+        const description = prompt('오늘의 성과를 입력하세요:');
+        if (description && description.trim()) {
+            const achievement = {
+                id: Date.now(),
+                description: description.trim(),
+                timestamp: new Date().toISOString()
+            };
+            achievements.push(achievement);
+            saveData('achievements', achievements);
+            renderAchievements();
+        }
+    };
+
+    const updateProductivityMetrics = () => {
+        const completionRate = document.getElementById('today-completion-rate');
+        const weekAvg = document.getElementById('week-avg-completion');
+        const focusTimeElem = document.getElementById('focus-time-today');
+        
+        if (completionRate && weekAvg && focusTimeElem) {
+            const today = new Date().toISOString().split('T')[0];
+            const todayTodos = todos.filter(todo => todo.date === today);
+            const completedTodos = todayTodos.filter(todo => todo.completed);
+            const rate = todayTodos.length > 0 ? Math.round((completedTodos.length / todayTodos.length) * 100) : 0;
+            
+            completionRate.textContent = `${rate}%`;
+            weekAvg.textContent = `${rate}%`;
+            focusTimeElem.textContent = `${Math.floor(totalFocusTime / 60)}시간 ${totalFocusTime % 60}분`;
+        }
+    };
+
+    const renderAchievements = () => {
+        const achievementsLog = document.getElementById('achievements-log');
+        if (!achievementsLog) return;
+        
+        const today = new Date().toISOString().split('T')[0];
+        const todayAchievements = achievements.filter(a => a.timestamp.startsWith(today));
+        
+        achievementsLog.innerHTML = todayAchievements.map(achievement => `
+            <div class="achievement-item">
+                <div class="achievement-text">${achievement.description}</div>
+                <div class="achievement-time">${new Date(achievement.timestamp).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'})}</div>
+                <button onclick="deleteAchievement(${achievement.id})" class="delete-btn">삭제</button>
+            </div>
+        `).join('');
+    };
+
+    const deleteAchievement = (achievementId) => {
+        achievements = achievements.filter(a => a.id !== achievementId);
+        saveData('achievements', achievements);
+        renderAchievements();
+    };
+
+    // Project Management Functions
+    const addProject = () => {
+        const title = document.getElementById('project-title').value.trim();
+        const deadline = document.getElementById('project-deadline').value;
+        const status = document.getElementById('project-status').value;
+        const description = document.getElementById('project-description').value.trim();
+        
+        if (!title || !deadline) return;
+        
+        const project = {
+            id: Date.now(),
+            title,
+            deadline,
+            status,
+            description,
+            createdAt: new Date().toISOString()
+        };
+        
+        projects.push(project);
+        saveData('projects', projects);
+        renderProjects();
+        
+        document.getElementById('project-title').value = '';
+        document.getElementById('project-deadline').value = '';
+        document.getElementById('project-description').value = '';
+    };
+
+    const updateProjectStatus = (projectId, newStatus) => {
+        const project = projects.find(p => p.id === projectId);
+        if (project) {
+            project.status = newStatus;
+            saveData('projects', projects);
+            renderProjects();
+        }
+    };
+
+    const renderProjects = () => {
+        const projectsList = document.getElementById('projects-list');
+        if (!projectsList) return;
+        
+        projectsList.innerHTML = projects.map(project => {
+            const deadline = new Date(project.deadline);
+            const today = new Date();
+            const daysLeft = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
+            const isOverdue = daysLeft < 0;
+            
+            const statusLabels = {
+                'planning': '기획 중',
+                'in-progress': '진행 중',
+                'review': '검토 중',
+                'completed': '완료'
+            };
+            
+            return `
+                <div class="project-item ${project.status}">
+                    <div class="project-header">
+                        <span class="project-title">${project.title}</span>
+                        <span class="project-deadline ${isOverdue ? 'overdue' : ''}">${isOverdue ? `${Math.abs(daysLeft)}일 지연` : `${daysLeft}일 남음`}</span>
+                    </div>
+                    <div class="project-description">${project.description}</div>
+                    <div class="project-actions">
+                        <select onchange="updateProjectStatus(${project.id}, this.value)" value="${project.status}">
+                            <option value="planning" ${project.status === 'planning' ? 'selected' : ''}>기획 중</option>
+                            <option value="in-progress" ${project.status === 'in-progress' ? 'selected' : ''}>진행 중</option>
+                            <option value="review" ${project.status === 'review' ? 'selected' : ''}>검토 중</option>
+                            <option value="completed" ${project.status === 'completed' ? 'selected' : ''}>완료</option>
+                        </select>
+                        <button onclick="deleteProject(${project.id})" class="delete-btn">삭제</button>
+                    </div>
+                    <div class="project-status-badge ${project.status}">${statusLabels[project.status]}</div>
+                </div>
+            `;
+        }).join('');
+    };
+
+    const deleteProject = (projectId) => {
+        projects = projects.filter(p => p.id !== projectId);
+        saveData('projects', projects);
+        renderProjects();
+    };
+
+    // --- 재무 및 비용 관리 Functions ---
+    
+    const addExpense = () => {
+        const date = document.getElementById('expense-date').value;
+        const category = document.getElementById('expense-category').value;
+        const amount = parseInt(document.getElementById('expense-amount').value);
+        const description = document.getElementById('expense-description').value.trim();
+        
+        if (!date || !amount || !description) return;
+        
+        const expense = {
+            id: Date.now(),
+            date,
+            category,
+            amount,
+            description,
+            createdAt: new Date().toISOString()
+        };
+        
+        expenses.push(expense);
+        saveData('expenses', expenses);
+        renderExpenses();
+        updateExpenseSummary();
+        
+        document.getElementById('expense-date').value = '';
+        document.getElementById('expense-amount').value = '';
+        document.getElementById('expense-description').value = '';
+    };
+
+    const renderExpenses = () => {
+        const expensesList = document.getElementById('expenses-list');
+        if (!expensesList) return;
+        
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        const monthlyExpenses = expenses.filter(expense => expense.date.startsWith(currentMonth));
+        
+        expensesList.innerHTML = monthlyExpenses.map(expense => `
+            <div class="expense-item">
+                <div class="expense-header">
+                    <span class="expense-category">${expense.category}</span>
+                    <span class="expense-amount">${expense.amount.toLocaleString()}원</span>
+                </div>
+                <div class="expense-description">${expense.description}</div>
+                <div class="expense-date">${expense.date}</div>
+                <button onclick="deleteExpense(${expense.id})" class="delete-btn">삭제</button>
+            </div>
+        `).join('');
+    };
+
+    const updateExpenseSummary = () => {
+        const summaryDiv = document.getElementById('monthly-expense-summary');
+        if (!summaryDiv) return;
+        
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        const monthlyExpenses = expenses.filter(expense => expense.date.startsWith(currentMonth));
+        
+        const categoryTotals = {};
+        let totalAmount = 0;
+        
+        monthlyExpenses.forEach(expense => {
+            categoryTotals[expense.category] = (categoryTotals[expense.category] || 0) + expense.amount;
+            totalAmount += expense.amount;
+        });
+        
+        summaryDiv.innerHTML = `
+            <div class="summary-total">총 지출: ${totalAmount.toLocaleString()}원</div>
+            ${Object.entries(categoryTotals).map(([category, amount]) => `
+                <div class="category-total">
+                    <span>${category}:</span>
+                    <span>${amount.toLocaleString()}원</span>
+                </div>
+            `).join('')}
+        `;
+    };
+
+    const deleteExpense = (expenseId) => {
+        expenses = expenses.filter(expense => expense.id !== expenseId);
+        saveData('expenses', expenses);
+        renderExpenses();
+        updateExpenseSummary();
+    };
+
+    const calculateSalary = () => {
+        const type = document.getElementById('salary-type').value;
+        const amount = parseFloat(document.getElementById('salary-amount').value);
+        const hours = parseFloat(document.getElementById('work-hours').value) || 0;
+        
+        if (!amount) return;
+        
+        let monthlyGross = 0;
+        
+        switch (type) {
+            case 'hourly':
+                monthlyGross = amount * hours * 4.33; // 평균 주당 근무시간 * 월평균 주수
+                break;
+            case 'monthly':
+                monthlyGross = amount;
+                break;
+            case 'annual':
+                monthlyGross = amount / 12;
+                break;
+        }
+        
+        const taxRate = 0.08; // 간단한 세율 계산 (실제로는 더 복잡)
+        const estimatedTax = monthlyGross * taxRate;
+        const netMonthly = monthlyGross - estimatedTax;
+        const annualSalary = monthlyGross * 12;
+        
+        document.getElementById('gross-monthly').textContent = `${Math.round(monthlyGross).toLocaleString()}원`;
+        document.getElementById('estimated-tax').textContent = `${Math.round(estimatedTax).toLocaleString()}원`;
+        document.getElementById('net-monthly').textContent = `${Math.round(netMonthly).toLocaleString()}원`;
+        document.getElementById('annual-salary').textContent = `${Math.round(annualSalary).toLocaleString()}원`;
+    };
+
+    const addBudget = () => {
+        const category = document.getElementById('budget-category').value.trim();
+        const limit = parseInt(document.getElementById('budget-limit').value);
+        
+        if (!category || !limit) return;
+        
+        const budget = {
+            id: Date.now(),
+            category,
+            limit,
+            spent: 0,
+            createdAt: new Date().toISOString()
+        };
+        
+        budgets.push(budget);
+        saveData('budgets', budgets);
+        renderBudgets();
+        
+        document.getElementById('budget-category').value = '';
+        document.getElementById('budget-limit').value = '';
+    };
+
+    const renderBudgets = () => {
+        const budgetsList = document.getElementById('budgets-list');
+        if (!budgetsList) return;
+        
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        const monthlyExpenses = expenses.filter(expense => expense.date.startsWith(currentMonth));
+        
+        budgetsList.innerHTML = budgets.map(budget => {
+            const spent = monthlyExpenses
+                .filter(expense => expense.category === budget.category)
+                .reduce((sum, expense) => sum + expense.amount, 0);
+            
+            const percentage = Math.min((spent / budget.limit) * 100, 100);
+            const isOverBudget = spent > budget.limit;
+            
+            return `
+                <div class="budget-item ${isOverBudget ? 'over-budget' : ''}">
+                    <div class="budget-header">
+                        <span class="budget-category">${budget.category}</span>
+                        <span class="budget-amount">${spent.toLocaleString()} / ${budget.limit.toLocaleString()}원</span>
+                    </div>
+                    <div class="budget-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill ${isOverBudget ? 'over-budget' : ''}" style="width: ${percentage}%"></div>
+                        </div>
+                        <span class="progress-text">${Math.round(percentage)}%</span>
+                    </div>
+                    <button onclick="deleteBudget(${budget.id})" class="delete-btn">삭제</button>
+                </div>
+            `;
+        }).join('');
+    };
+
+    const deleteBudget = (budgetId) => {
+        budgets = budgets.filter(budget => budget.id !== budgetId);
+        saveData('budgets', budgets);
+        renderBudgets();
+    };
+
+    // --- 업무 조직 및 계획 Functions ---
+    
+    const addMeeting = () => {
+        const title = document.getElementById('meeting-title').value.trim();
+        const datetime = document.getElementById('meeting-datetime').value;
+        const participants = document.getElementById('meeting-participants').value.trim();
+        const agenda = document.getElementById('meeting-agenda').value.trim();
+        
+        if (!title || !datetime || !participants) return;
+        
+        const meeting = {
+            id: Date.now(),
+            title,
+            datetime,
+            participants: participants.split(',').map(p => p.trim()),
+            agenda,
+            createdAt: new Date().toISOString()
+        };
+        
+        meetings.push(meeting);
+        saveData('meetings', meetings);
+        renderMeetings();
+        
+        document.getElementById('meeting-title').value = '';
+        document.getElementById('meeting-datetime').value = '';
+        document.getElementById('meeting-participants').value = '';
+        document.getElementById('meeting-agenda').value = '';
+    };
+
+    const renderMeetings = () => {
+        const meetingsList = document.getElementById('meetings-list');
+        if (!meetingsList) return;
+        
+        const sortedMeetings = meetings.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+        
+        meetingsList.innerHTML = sortedMeetings.map(meeting => {
+            const meetingDate = new Date(meeting.datetime);
+            const isPast = meetingDate < new Date();
+            
+            return `
+                <div class="meeting-item ${isPast ? 'past-meeting' : ''}">
+                    <div class="meeting-header">
+                        <span class="meeting-title">${meeting.title}</span>
+                        <span class="meeting-date">${meetingDate.toLocaleString('ko-KR')}</span>
+                    </div>
+                    <div class="meeting-participants">참석자: ${meeting.participants.join(', ')}</div>
+                    ${meeting.agenda ? `<div class="meeting-agenda">${meeting.agenda}</div>` : ''}
+                    <button onclick="deleteMeeting(${meeting.id})" class="delete-btn">삭제</button>
+                </div>
+            `;
+        }).join('');
+    };
+
+    const deleteMeeting = (meetingId) => {
+        meetings = meetings.filter(meeting => meeting.id !== meetingId);
+        saveData('meetings', meetings);
+        renderMeetings();
+    };
+
+    const addDeadline = () => {
+        const task = document.getElementById('deadline-task').value.trim();
+        const datetime = document.getElementById('deadline-datetime').value;
+        const priority = document.getElementById('deadline-priority').value;
+        
+        if (!task || !datetime) return;
+        
+        const deadline = {
+            id: Date.now(),
+            task,
+            datetime,
+            priority,
+            completed: false,
+            createdAt: new Date().toISOString()
+        };
+        
+        deadlines.push(deadline);
+        saveData('deadlines', deadlines);
+        renderDeadlines();
+        
+        document.getElementById('deadline-task').value = '';
+        document.getElementById('deadline-datetime').value = '';
+    };
+
+    const renderDeadlines = () => {
+        const deadlinesList = document.getElementById('deadlines-list');
+        if (!deadlinesList) return;
+        
+        const sortedDeadlines = deadlines.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+        
+        deadlinesList.innerHTML = sortedDeadlines.map(deadline => {
+            const deadlineDate = new Date(deadline.datetime);
+            const now = new Date();
+            const timeLeft = deadlineDate - now;
+            const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
+            const isOverdue = timeLeft < 0;
+            
+            return `
+                <div class="deadline-item ${deadline.priority} ${isOverdue ? 'overdue' : ''} ${deadline.completed ? 'completed' : ''}">
+                    <div class="deadline-header">
+                        <span class="deadline-task">${deadline.task}</span>
+                        <span class="deadline-time ${isOverdue ? 'overdue' : ''}">${isOverdue ? `${Math.abs(daysLeft)}일 지연` : `${daysLeft}일 남음`}</span>
+                    </div>
+                    <div class="deadline-date">${deadlineDate.toLocaleString('ko-KR')}</div>
+                    <div class="deadline-actions">
+                        <button onclick="toggleDeadlineComplete(${deadline.id})" class="complete-btn">${deadline.completed ? '미완료로 변경' : '완료'}</button>
+                        <button onclick="deleteDeadline(${deadline.id})" class="delete-btn">삭제</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    };
+
+    const toggleDeadlineComplete = (deadlineId) => {
+        const deadline = deadlines.find(d => d.id === deadlineId);
+        if (deadline) {
+            deadline.completed = !deadline.completed;
+            saveData('deadlines', deadlines);
+            renderDeadlines();
+        }
+    };
+
+    const deleteDeadline = (deadlineId) => {
+        deadlines = deadlines.filter(deadline => deadline.id !== deadlineId);
+        saveData('deadlines', deadlines);
+        renderDeadlines();
+    };
+
+    const addTaskTemplate = () => {
+        const name = document.getElementById('template-name').value.trim();
+        const tasks = document.getElementById('template-tasks').value.trim();
+        
+        if (!name || !tasks) return;
+        
+        const template = {
+            id: Date.now(),
+            name,
+            tasks: tasks.split('\n').filter(task => task.trim()),
+            createdAt: new Date().toISOString()
+        };
+        
+        taskTemplates.push(template);
+        saveData('taskTemplates', taskTemplates);
+        renderTaskTemplates();
+        
+        document.getElementById('template-name').value = '';
+        document.getElementById('template-tasks').value = '';
+    };
+
+    const renderTaskTemplates = () => {
+        const templatesList = document.getElementById('templates-list');
+        if (!templatesList) return;
+        
+        templatesList.innerHTML = taskTemplates.map(template => `
+            <div class="template-item">
+                <div class="template-header">
+                    <span class="template-name">${template.name}</span>
+                    <span class="template-count">${template.tasks.length}개 작업</span>
+                </div>
+                <div class="template-tasks">
+                    ${template.tasks.map(task => `<div class="template-task">• ${task}</div>`).join('')}
+                </div>
+                <div class="template-actions">
+                    <button onclick="useTemplate(${template.id})" class="use-btn">사용하기</button>
+                    <button onclick="deleteTemplate(${template.id})" class="delete-btn">삭제</button>
+                </div>
+            </div>
+        `).join('');
+    };
+
+    const useTemplate = (templateId) => {
+        const template = taskTemplates.find(t => t.id === templateId);
+        if (template) {
+            // TODO: 템플릿을 할 일 목록에 추가하는 로직
+            alert(`"${template.name}" 템플릿이 할 일 목록에 추가되었습니다.`);
+        }
+    };
+
+    const deleteTemplate = (templateId) => {
+        taskTemplates = taskTemplates.filter(template => template.id !== templateId);
+        saveData('taskTemplates', taskTemplates);
+        renderTaskTemplates();
+    };
+
+    const addLeave = () => {
+        const startDate = document.getElementById('leave-start-date').value;
+        const endDate = document.getElementById('leave-end-date').value;
+        const type = document.getElementById('leave-type').value;
+        const reason = document.getElementById('leave-reason').value.trim();
+        
+        if (!startDate || !endDate) return;
+        
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        
+        const leave = {
+            id: Date.now(),
+            startDate,
+            endDate,
+            type,
+            reason,
+            days,
+            status: 'pending',
+            createdAt: new Date().toISOString()
+        };
+        
+        leaves.push(leave);
+        saveData('leaves', leaves);
+        renderLeaves();
+        updateLeaveStats();
+        
+        document.getElementById('leave-start-date').value = '';
+        document.getElementById('leave-end-date').value = '';
+        document.getElementById('leave-reason').value = '';
+    };
+
+    const renderLeaves = () => {
+        const leavesList = document.getElementById('leaves-list');
+        if (!leavesList) return;
+        
+        leavesList.innerHTML = leaves.map(leave => `
+            <div class="leave-item ${leave.type}">
+                <div class="leave-header">
+                    <span class="leave-type">${leave.type === 'annual' ? '연차' : leave.type === 'sick' ? '병가' : leave.type === 'personal' ? '개인사유' : '휴가'}</span>
+                    <span class="leave-days">${leave.days}일</span>
+                </div>
+                <div class="leave-period">${leave.startDate} ~ ${leave.endDate}</div>
+                ${leave.reason ? `<div class="leave-reason">${leave.reason}</div>` : ''}
+                <div class="leave-status status-${leave.status}">${leave.status === 'pending' ? '대기중' : leave.status === 'approved' ? '승인' : '거절'}</div>
+                <button onclick="deleteLeave(${leave.id})" class="delete-btn">삭제</button>
+            </div>
+        `).join('');
+    };
+
+    const updateLeaveStats = () => {
+        const usedAnnualLeave = leaves
+            .filter(leave => leave.type === 'annual' && leave.status === 'approved')
+            .reduce((sum, leave) => sum + leave.days, 0);
+        
+        const remainingLeave = Math.max(0, annualLeaveTotal - usedAnnualLeave);
+        
+        const usedSpan = document.getElementById('used-annual-leave');
+        const remainingSpan = document.getElementById('remaining-annual-leave');
+        
+        if (usedSpan) usedSpan.textContent = `${usedAnnualLeave}일`;
+        if (remainingSpan) remainingSpan.textContent = `${remainingLeave}일`;
+    };
+
+    const deleteLeave = (leaveId) => {
+        leaves = leaves.filter(leave => leave.id !== leaveId);
+        saveData('leaves', leaves);
+        renderLeaves();
+        updateLeaveStats();
+    };
+
+    // --- 협업 및 소통 Functions ---
+    
+    const addContact = () => {
+        const name = document.getElementById('contact-name').value.trim();
+        const position = document.getElementById('contact-position').value.trim();
+        const phone = document.getElementById('contact-phone').value.trim();
+        const email = document.getElementById('contact-email').value.trim();
+        const department = document.getElementById('contact-department').value.trim();
+        
+        if (!name || !position || !phone || !email || !department) return;
+        
+        const contact = {
+            id: Date.now(),
+            name,
+            position,
+            phone,
+            email,
+            department,
+            createdAt: new Date().toISOString()
+        };
+        
+        contacts.push(contact);
+        saveData('contacts', contacts);
+        renderContacts();
+        
+        document.getElementById('contact-name').value = '';
+        document.getElementById('contact-position').value = '';
+        document.getElementById('contact-phone').value = '';
+        document.getElementById('contact-email').value = '';
+        document.getElementById('contact-department').value = '';
+    };
+
+    const renderContacts = () => {
+        const contactsList = document.getElementById('contacts-list');
+        if (!contactsList) return;
+        
+        contactsList.innerHTML = contacts.map(contact => `
+            <div class="contact-item">
+                <div class="contact-header">
+                    <span class="contact-name">${contact.name}</span>
+                    <span class="contact-department">${contact.department}</span>
+                </div>
+                <div class="contact-position">${contact.position}</div>
+                <div class="contact-info">
+                    <div class="contact-phone">📞 ${contact.phone}</div>
+                    <div class="contact-email">📧 ${contact.email}</div>
+                </div>
+                <button onclick="deleteContact(${contact.id})" class="delete-btn">삭제</button>
+            </div>
+        `).join('');
+    };
+
+    const deleteContact = (contactId) => {
+        contacts = contacts.filter(contact => contact.id !== contactId);
+        saveData('contacts', contacts);
+        renderContacts();
+    };
+
+    const addFeedback = () => {
+        const type = document.getElementById('feedback-type').value;
+        const title = document.getElementById('feedback-title').value.trim();
+        const content = document.getElementById('feedback-content').value.trim();
+        const priority = document.getElementById('feedback-priority').value;
+        
+        if (!title || !content) return;
+        
+        const feedback = {
+            id: Date.now(),
+            type,
+            title,
+            content,
+            priority,
+            status: 'open',
+            createdAt: new Date().toISOString()
+        };
+        
+        feedbacks.push(feedback);
+        saveData('feedbacks', feedbacks);
+        renderFeedbacks();
+        
+        document.getElementById('feedback-title').value = '';
+        document.getElementById('feedback-content').value = '';
+    };
+
+    const renderFeedbacks = () => {
+        const feedbacksList = document.getElementById('feedbacks-list');
+        if (!feedbacksList) return;
+        
+        feedbacksList.innerHTML = feedbacks.map(feedback => {
+            const typeLabels = {
+                'suggestion': '개선 제안',
+                'issue': '문제점',
+                'praise': '칭찬',
+                'complaint': '불만'
+            };
+            
+            return `
+                <div class="feedback-item ${feedback.priority} ${feedback.type}">
+                    <div class="feedback-header">
+                        <span class="feedback-title">${feedback.title}</span>
+                        <span class="feedback-type">${typeLabels[feedback.type]}</span>
+                    </div>
+                    <div class="feedback-content">${feedback.content}</div>
+                    <div class="feedback-meta">
+                        <span class="feedback-priority">우선순위: ${feedback.priority}</span>
+                        <span class="feedback-status">상태: ${feedback.status === 'open' ? '미해결' : '해결'}</span>
+                        <span class="feedback-date">${new Date(feedback.createdAt).toLocaleDateString('ko-KR')}</span>
+                    </div>
+                    <div class="feedback-actions">
+                        <button onclick="toggleFeedbackStatus(${feedback.id})" class="status-btn">${feedback.status === 'open' ? '해결됨으로 변경' : '미해결로 변경'}</button>
+                        <button onclick="deleteFeedback(${feedback.id})" class="delete-btn">삭제</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    };
+
+    const toggleFeedbackStatus = (feedbackId) => {
+        const feedback = feedbacks.find(f => f.id === feedbackId);
+        if (feedback) {
+            feedback.status = feedback.status === 'open' ? 'resolved' : 'open';
+            saveData('feedbacks', feedbacks);
+            renderFeedbacks();
+        }
+    };
+
+    const deleteFeedback = (feedbackId) => {
+        feedbacks = feedbacks.filter(feedback => feedback.id !== feedbackId);
+        saveData('feedbacks', feedbacks);
+        renderFeedbacks();
+    };
+
+    const addHandover = () => {
+        const project = document.getElementById('handover-project').value.trim();
+        const from = document.getElementById('handover-from').value.trim();
+        const to = document.getElementById('handover-to').value.trim();
+        const details = document.getElementById('handover-details').value.trim();
+        const deadline = document.getElementById('handover-deadline').value;
+        
+        if (!project || !from || !to || !details || !deadline) return;
+        
+        const handover = {
+            id: Date.now(),
+            project,
+            from,
+            to,
+            details,
+            deadline,
+            status: 'pending',
+            createdAt: new Date().toISOString()
+        };
+        
+        handovers.push(handover);
+        saveData('handovers', handovers);
+        renderHandovers();
+        
+        document.getElementById('handover-project').value = '';
+        document.getElementById('handover-from').value = '';
+        document.getElementById('handover-to').value = '';
+        document.getElementById('handover-details').value = '';
+        document.getElementById('handover-deadline').value = '';
+    };
+
+    const renderHandovers = () => {
+        const handoversList = document.getElementById('handovers-list');
+        if (!handoversList) return;
+        
+        handoversList.innerHTML = handovers.map(handover => {
+            const deadlineDate = new Date(handover.deadline);
+            const isOverdue = deadlineDate < new Date() && handover.status !== 'completed';
+            
+            return `
+                <div class="handover-item ${handover.status} ${isOverdue ? 'overdue' : ''}">
+                    <div class="handover-header">
+                        <span class="handover-project">${handover.project}</span>
+                        <span class="handover-status status-${handover.status}">${handover.status === 'pending' ? '대기중' : handover.status === 'in-progress' ? '진행중' : '완료'}</span>
+                    </div>
+                    <div class="handover-people">
+                        <span class="handover-from">인계자: ${handover.from}</span>
+                        <span class="handover-to">인수자: ${handover.to}</span>
+                    </div>
+                    <div class="handover-details">${handover.details}</div>
+                    <div class="handover-deadline ${isOverdue ? 'overdue' : ''}">마감일: ${handover.deadline}</div>
+                    <div class="handover-actions">
+                        <select onchange="updateHandoverStatus(${handover.id}, this.value)" value="${handover.status}">
+                            <option value="pending" ${handover.status === 'pending' ? 'selected' : ''}>대기중</option>
+                            <option value="in-progress" ${handover.status === 'in-progress' ? 'selected' : ''}>진행중</option>
+                            <option value="completed" ${handover.status === 'completed' ? 'selected' : ''}>완료</option>
+                        </select>
+                        <button onclick="deleteHandover(${handover.id})" class="delete-btn">삭제</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    };
+
+    const updateHandoverStatus = (handoverId, newStatus) => {
+        const handover = handovers.find(h => h.id === handoverId);
+        if (handover) {
+            handover.status = newStatus;
+            saveData('handovers', handovers);
+            renderHandovers();
+        }
+    };
+
+    const deleteHandover = (handoverId) => {
+        handovers = handovers.filter(handover => handover.id !== handoverId);
+        saveData('handovers', handovers);
+        renderHandovers();
+    };
+
+    // --- 성장 및 학습 Functions ---
+    
+    const addLearningPlan = () => {
+        const subject = document.getElementById('learning-subject').value.trim();
+        const targetDate = document.getElementById('learning-target-date').value;
+        const type = document.getElementById('learning-type').value;
+        const notes = document.getElementById('learning-notes').value.trim();
+        
+        if (!subject || !targetDate) return;
+        
+        const learning = {
+            id: Date.now(),
+            subject,
+            targetDate,
+            type,
+            notes,
+            progress: 0,
+            completed: false,
+            createdAt: new Date().toISOString()
+        };
+        
+        learningPlans.push(learning);
+        saveData('learningPlans', learningPlans);
+        renderLearningPlans();
+        
+        document.getElementById('learning-subject').value = '';
+        document.getElementById('learning-target-date').value = '';
+        document.getElementById('learning-notes').value = '';
+    };
+
+    const renderLearningPlans = () => {
+        const learningList = document.getElementById('learning-list');
+        if (!learningList) return;
+        
+        learningList.innerHTML = learningPlans.map(learning => {
+            const targetDate = new Date(learning.targetDate);
+            const isOverdue = targetDate < new Date() && !learning.completed;
+            
+            const typeLabels = {
+                'online': '온라인 강의',
+                'book': '도서',
+                'workshop': '워크샵',
+                'conference': '컨퍼런스',
+                'certification': '자격증'
+            };
+            
+            return `
+                <div class="learning-item ${learning.completed ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}">
+                    <div class="learning-header">
+                        <span class="learning-subject">${learning.subject}</span>
+                        <span class="learning-type">${typeLabels[learning.type]}</span>
+                    </div>
+                    <div class="learning-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${learning.progress}%"></div>
+                        </div>
+                        <span class="progress-text">${learning.progress}%</span>
+                    </div>
+                    <div class="learning-target">목표일: ${learning.targetDate}</div>
+                    ${learning.notes ? `<div class="learning-notes">${learning.notes}</div>` : ''}
+                    <div class="learning-actions">
+                        <input type="range" min="0" max="100" value="${learning.progress}" onchange="updateLearningProgress(${learning.id}, this.value)">
+                        <button onclick="toggleLearningComplete(${learning.id})" class="complete-btn">${learning.completed ? '미완료로 변경' : '완료'}</button>
+                        <button onclick="deleteLearningPlan(${learning.id})" class="delete-btn">삭제</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    };
+
+    const updateLearningProgress = (learningId, progress) => {
+        const learning = learningPlans.find(l => l.id === learningId);
+        if (learning) {
+            learning.progress = parseInt(progress);
+            if (learning.progress >= 100) {
+                learning.completed = true;
+            }
+            saveData('learningPlans', learningPlans);
+            renderLearningPlans();
+        }
+    };
+
+    const toggleLearningComplete = (learningId) => {
+        const learning = learningPlans.find(l => l.id === learningId);
+        if (learning) {
+            learning.completed = !learning.completed;
+            if (learning.completed) {
+                learning.progress = 100;
+            }
+            saveData('learningPlans', learningPlans);
+            renderLearningPlans();
+        }
+    };
+
+    const deleteLearningPlan = (learningId) => {
+        learningPlans = learningPlans.filter(learning => learning.id !== learningId);
+        saveData('learningPlans', learningPlans);
+        renderLearningPlans();
+    };
+
+    const addSkill = () => {
+        const name = document.getElementById('skill-name').value.trim();
+        const category = document.getElementById('skill-category').value;
+        const level = parseInt(document.getElementById('skill-level').value);
+        
+        if (!name) return;
+        
+        const skill = {
+            id: Date.now(),
+            name,
+            category,
+            level,
+            createdAt: new Date().toISOString()
+        };
+        
+        skills.push(skill);
+        saveData('skills', skills);
+        renderSkills();
+        
+        document.getElementById('skill-name').value = '';
+    };
+
+    const renderSkills = () => {
+        const skillsMatrix = document.getElementById('skills-matrix');
+        if (!skillsMatrix) return;
+        
+        const categories = [...new Set(skills.map(skill => skill.category))];
+        
+        skillsMatrix.innerHTML = categories.map(category => {
+            const categorySkills = skills.filter(skill => skill.category === category);
+            const categoryLabels = {
+                'technical': '기술',
+                'communication': '소통',
+                'leadership': '리더십',
+                'project': '프로젝트 관리',
+                'language': '언어'
+            };
+            
+            return `
+                <div class="skill-category">
+                    <h4>${categoryLabels[category]}</h4>
+                    <div class="skills-list">
+                        ${categorySkills.map(skill => `
+                            <div class="skill-item level-${skill.level}">
+                                <div class="skill-header">
+                                    <span class="skill-name">${skill.name}</span>
+                                    <span class="skill-level">레벨 ${skill.level}</span>
+                                </div>
+                                <div class="skill-bar">
+                                    <div class="skill-fill" style="width: ${(skill.level / 5) * 100}%"></div>
+                                </div>
+                                <button onclick="deleteSkill(${skill.id})" class="delete-btn">삭제</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    };
+
+    const deleteSkill = (skillId) => {
+        skills = skills.filter(skill => skill.id !== skillId);
+        saveData('skills', skills);
+        renderSkills();
+    };
+
+    const addBook = () => {
+        const title = document.getElementById('book-title').value.trim();
+        const author = document.getElementById('book-author').value.trim();
+        const status = document.getElementById('reading-status').value;
+        const pages = parseInt(document.getElementById('book-pages').value) || 0;
+        const currentPage = parseInt(document.getElementById('current-page').value) || 0;
+        
+        if (!title || !author) return;
+        
+        const book = {
+            id: Date.now(),
+            title,
+            author,
+            status,
+            pages,
+            currentPage,
+            createdAt: new Date().toISOString()
+        };
+        
+        books.push(book);
+        saveData('books', books);
+        renderBooks();
+        updateReadingStats();
+        
+        document.getElementById('book-title').value = '';
+        document.getElementById('book-author').value = '';
+        document.getElementById('book-pages').value = '';
+        document.getElementById('current-page').value = '';
+    };
+
+    const renderBooks = () => {
+        const booksList = document.getElementById('books-list');
+        if (!booksList) return;
+        
+        booksList.innerHTML = books.map(book => {
+            const progress = book.pages > 0 ? Math.round((book.currentPage / book.pages) * 100) : 0;
+            
+            const statusLabels = {
+                'to-read': '읽을 예정',
+                'reading': '읽는 중',
+                'completed': '완료'
+            };
+            
+            return `
+                <div class="book-item ${book.status}">
+                    <div class="book-header">
+                        <span class="book-title">${book.title}</span>
+                        <span class="book-status">${statusLabels[book.status]}</span>
+                    </div>
+                    <div class="book-author">저자: ${book.author}</div>
+                    ${book.pages > 0 ? `
+                        <div class="book-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${progress}%"></div>
+                            </div>
+                            <span class="progress-text">${book.currentPage}/${book.pages} 페이지 (${progress}%)</span>
+                        </div>
+                        <input type="number" value="${book.currentPage}" onchange="updateBookProgress(${book.id}, this.value)" placeholder="현재 페이지" min="0" max="${book.pages}">
+                    ` : ''}
+                    <select onchange="updateBookStatus(${book.id}, this.value)" value="${book.status}">
+                        <option value="to-read" ${book.status === 'to-read' ? 'selected' : ''}>읽을 예정</option>
+                        <option value="reading" ${book.status === 'reading' ? 'selected' : ''}>읽는 중</option>
+                        <option value="completed" ${book.status === 'completed' ? 'selected' : ''}>완료</option>
+                    </select>
+                    <button onclick="deleteBook(${book.id})" class="delete-btn">삭제</button>
+                </div>
+            `;
+        }).join('');
+    };
+
+    const updateBookProgress = (bookId, currentPage) => {
+        const book = books.find(b => b.id === bookId);
+        if (book) {
+            book.currentPage = parseInt(currentPage);
+            if (book.currentPage >= book.pages && book.pages > 0) {
+                book.status = 'completed';
+            }
+            saveData('books', books);
+            renderBooks();
+            updateReadingStats();
+        }
+    };
+
+    const updateBookStatus = (bookId, newStatus) => {
+        const book = books.find(b => b.id === bookId);
+        if (book) {
+            book.status = newStatus;
+            if (newStatus === 'completed' && book.pages > 0) {
+                book.currentPage = book.pages;
+            }
+            saveData('books', books);
+            renderBooks();
+            updateReadingStats();
+        }
+    };
+
+    const updateReadingStats = () => {
+        const totalBooks = books.length;
+        const completedBooks = books.filter(book => book.status === 'completed').length;
+        const readingBooks = books.filter(book => book.status === 'reading').length;
+        
+        const totalElem = document.getElementById('total-books');
+        const completedElem = document.getElementById('completed-books');
+        const readingElem = document.getElementById('reading-books');
+        
+        if (totalElem) totalElem.textContent = `${totalBooks}권`;
+        if (completedElem) completedElem.textContent = `${completedBooks}권`;
+        if (readingElem) readingElem.textContent = `${readingBooks}권`;
+    };
+
+    const deleteBook = (bookId) => {
+        books = books.filter(book => book.id !== bookId);
+        saveData('books', books);
+        renderBooks();
+        updateReadingStats();
+    };
+
+    // --- 도구 및 유틸리티 Functions ---
+    
+    const generatePassword = () => {
+        const length = parseInt(document.getElementById('password-length').value);
+        const includeUppercase = document.getElementById('include-uppercase').checked;
+        const includeLowercase = document.getElementById('include-lowercase').checked;
+        const includeNumbers = document.getElementById('include-numbers').checked;
+        const includeSymbols = document.getElementById('include-symbols').checked;
+        
+        let charset = '';
+        if (includeUppercase) charset += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        if (includeLowercase) charset += 'abcdefghijklmnopqrstuvwxyz';
+        if (includeNumbers) charset += '0123456789';
+        if (includeSymbols) charset += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+        
+        if (!charset) return;
+        
+        let password = '';
+        for (let i = 0; i < length; i++) {
+            password += charset.charAt(Math.floor(Math.random() * charset.length));
+        }
+        
+        document.getElementById('generated-password').value = password;
+        updatePasswordStrength(password);
+    };
+
+    const updatePasswordStrength = (password) => {
+        let strength = 0;
+        const checks = [
+            password.length >= 8,
+            /[a-z]/.test(password),
+            /[A-Z]/.test(password),
+            /[0-9]/.test(password),
+            /[^A-Za-z0-9]/.test(password)
+        ];
+        
+        strength = checks.filter(check => check).length;
+        
+        const strengthLabels = ['매우 약함', '약함', '보통', '강함', '매우 강함'];
+        const strengthColors = ['#dc3545', '#fd7e14', '#ffc107', '#198754', '#0d6efd'];
+        
+        const indicator = document.getElementById('password-strength-indicator');
+        if (indicator) {
+            indicator.textContent = strengthLabels[strength - 1] || '매우 약함';
+            indicator.style.color = strengthColors[strength - 1] || '#dc3545';
+        }
+    };
+
+    const copyPassword = () => {
+        const passwordField = document.getElementById('generated-password');
+        if (passwordField && passwordField.value) {
+            navigator.clipboard.writeText(passwordField.value).then(() => {
+                alert('비밀번호가 클립보드에 복사되었습니다.');
+            });
+        }
+    };
+
+    const generateQRCode = () => {
+        const text = document.getElementById('qr-text').value.trim();
+        if (!text) return;
+        
+        // Simple QR code generation (would need a real QR library in production)
+        const qrDisplay = document.getElementById('qr-code-display');
+        const downloadBtn = document.getElementById('download-qr-btn');
+        
+        qrDisplay.innerHTML = `
+            <div class="qr-placeholder">
+                <div class="qr-grid">
+                    ${Array(25).fill().map(() => `<div class="qr-cell ${Math.random() > 0.5 ? 'filled' : ''}"></div>`).join('')}
+                </div>
+                <p>QR 코드 (실제 구현시 QR 라이브러리 필요)</p>
+            </div>
+        `;
+        
+        downloadBtn.classList.remove('hidden');
+    };
+
+    const updateUnitOptions = () => {
+        const conversionType = document.getElementById('conversion-type').value;
+        const fromUnit = document.getElementById('from-unit');
+        const toUnit = document.getElementById('to-unit');
+        
+        let units = [];
+        
+        switch (conversionType) {
+            case 'length':
+                units = ['mm', 'cm', 'm', 'km', 'inch', 'ft', 'yard', 'mile'];
+                break;
+            case 'weight':
+                units = ['mg', 'g', 'kg', 'ton', 'oz', 'lb'];
+                break;
+            case 'temperature':
+                units = ['C', 'F', 'K'];
+                break;
+            case 'currency':
+                units = ['KRW', 'USD', 'EUR', 'JPY', 'CNY'];
+                break;
+            case 'area':
+                units = ['mm²', 'cm²', 'm²', 'km²', 'in²', 'ft²'];
+                break;
+        }
+        
+        fromUnit.innerHTML = units.map(unit => `<option value="${unit}">${unit}</option>`).join('');
+        toUnit.innerHTML = units.map(unit => `<option value="${unit}">${unit}</option>`).join('');
+    };
+
+    const convertUnits = () => {
+        const conversionType = document.getElementById('conversion-type').value;
+        const fromValue = parseFloat(document.getElementById('from-value').value);
+        const fromUnit = document.getElementById('from-unit').value;
+        const toUnit = document.getElementById('to-unit').value;
+        const toValueField = document.getElementById('to-value');
+        
+        if (!fromValue || !fromUnit || !toUnit) return;
+        
+        let result = 0;
+        
+        if (conversionType === 'temperature') {
+            result = convertTemperature(fromValue, fromUnit, toUnit);
+        } else if (conversionType === 'currency') {
+            // 간단한 환율 (실제로는 API 호출 필요)
+            const rates = { KRW: 1, USD: 1300, EUR: 1400, JPY: 9, CNY: 180 };
+            result = (fromValue / rates[fromUnit]) * rates[toUnit];
+        } else {
+            const conversions = unitConversions[conversionType];
+            if (conversions && conversions[fromUnit] && conversions[toUnit]) {
+                result = (fromValue * conversions[fromUnit]) / conversions[toUnit];
+            }
+        }
+        
+        toValueField.value = result.toFixed(6);
+    };
+
+    const convertTemperature = (value, from, to) => {
+        let celsius = value;
+        
+        if (from === 'F') celsius = (value - 32) * 5/9;
+        if (from === 'K') celsius = value - 273.15;
+        
+        if (to === 'C') return celsius;
+        if (to === 'F') return (celsius * 9/5) + 32;
+        if (to === 'K') return celsius + 273.15;
+        
+        return value;
+    };
+
     // --- Initialization & App Start ---
     async function initializeApp() {
         // 1. Load all data from localStorage and apply to state
@@ -1073,6 +2514,26 @@ document.addEventListener('DOMContentLoaded', () => {
         attendanceRecords = loadData('attendanceRecords') || {};
         isTtsEnabled = loadData('ttsEnabled') ?? true;
         isTodoTtsEnabled = loadData('todoTtsEnabled') ?? true;
+        goals = loadData('goals') || [];
+        timeEntries = loadData('timeEntries') || [];
+        achievements = loadData('achievements') || [];
+        projects = loadData('projects') || [];
+        const focusData = loadData('focusTime');
+        if (focusData && focusData.date === new Date().toISOString().split('T')[0]) {
+            totalFocusTime = focusData.total || 0;
+        }
+        expenses = loadData('expenses') || [];
+        budgets = loadData('budgets') || [];
+        meetings = loadData('meetings') || [];
+        deadlines = loadData('deadlines') || [];
+        taskTemplates = loadData('taskTemplates') || [];
+        leaves = loadData('leaves') || [];
+        contacts = loadData('contacts') || [];
+        feedbacks = loadData('feedbacks') || [];
+        handovers = loadData('handovers') || [];
+        learningPlans = loadData('learningPlans') || [];
+        skills = loadData('skills') || [];
+        books = loadData('books') || [];
         const pomoSettings = loadData('pomoSettings');
         if (pomoSettings) {
             workDuration = pomoSettings.work;
@@ -1082,7 +2543,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Ensure all cards are in cardVisibility with a default true value
         const allCardIds = [
             'weather', 'tts-notifier', 'notes', 'voiceMemo', 'pomodoro', 
-            'todo', 'done', 'calculator', 'attendance', 'attendanceSummary'
+            'todo', 'done', 'calculator', 'attendance', 'attendanceSummary',
+            'goal-tracker', 'time-analysis', 'productivity-metrics', 'project-management',
+            'expense-manager', 'salary-calculator', 'budget-tracker',
+            'meeting-manager', 'deadline-tracker', 'task-template', 'leave-manager',
+            'team-contacts', 'feedback-collector', 'handover-manager',
+            'learning-plan', 'skill-matrix', 'reading-list',
+            'password-generator', 'qr-generator', 'unit-converter'
         ];
         allCardIds.forEach(id => {
             if (cardVisibility[id] === undefined) {
@@ -1106,6 +2573,28 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAttendance();
         updatePomoTimer();
         updateCardVisibility();
+        renderGoals();
+        renderTimeEntries();
+        updateTimeSummary();
+        renderAchievements();
+        updateProductivityMetrics();
+        renderProjects();
+        renderExpenses();
+        updateExpenseSummary();
+        renderBudgets();
+        renderMeetings();
+        renderDeadlines();
+        renderTaskTemplates();
+        renderLeaves();
+        updateLeaveStats();
+        renderContacts();
+        renderFeedbacks();
+        renderHandovers();
+        renderLearningPlans();
+        renderSkills();
+        renderBooks();
+        updateReadingStats();
+        updateUnitOptions();
 
         // 4. Update UI controls to reflect the loaded state
         ttsToggle.checked = isTtsEnabled;
@@ -1175,6 +2664,83 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     };
+
+    // Event Listeners for new cards
+    document.addEventListener('click', (e) => {
+        // 데이터 관리 및 분석
+        if (e.target.id === 'add-goal-btn') addGoal();
+        if (e.target.id === 'add-time-entry-btn') addTimeEntry();
+        if (e.target.id === 'start-focus-session') startFocusSession();
+        if (e.target.id === 'log-achievement') logAchievement();
+        if (e.target.id === 'add-project-btn') addProject();
+        
+        // 재무 및 비용 관리
+        if (e.target.id === 'add-expense-btn') addExpense();
+        if (e.target.id === 'calculate-salary-btn') calculateSalary();
+        if (e.target.id === 'add-budget-btn') addBudget();
+        
+        // 업무 조직 및 계획
+        if (e.target.id === 'add-meeting-btn') addMeeting();
+        if (e.target.id === 'add-deadline-btn') addDeadline();
+        if (e.target.id === 'add-template-btn') addTaskTemplate();
+        if (e.target.id === 'add-leave-btn') addLeave();
+        
+        // 협업 및 소통
+        if (e.target.id === 'add-contact-btn') addContact();
+        if (e.target.id === 'add-feedback-btn') addFeedback();
+        if (e.target.id === 'add-handover-btn') addHandover();
+        
+        // 성장 및 학습
+        if (e.target.id === 'add-learning-btn') addLearningPlan();
+        if (e.target.id === 'add-skill-btn') addSkill();
+        if (e.target.id === 'add-book-btn') addBook();
+        
+        // 도구 및 유틸리티
+        if (e.target.id === 'generate-password-btn') generatePassword();
+        if (e.target.id === 'copy-password-btn') copyPassword();
+        if (e.target.id === 'generate-qr-btn') generateQRCode();
+        if (e.target.id === 'convert-btn') convertUnits();
+    });
+
+    // Additional event listeners
+    document.addEventListener('change', (e) => {
+        if (e.target.id === 'conversion-type') updateUnitOptions();
+        if (e.target.id === 'from-value' || e.target.id === 'from-unit' || e.target.id === 'to-unit') convertUnits();
+    });
+
+    // Category dropdown functionality
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('category-header') || e.target.closest('.category-header')) {
+            const header = e.target.classList.contains('category-header') ? e.target : e.target.closest('.category-header');
+            const categoryId = header.dataset.category;
+            const controls = document.getElementById(`category-${categoryId}`);
+            
+            if (controls) {
+                const isCollapsed = controls.classList.contains('collapsed');
+                
+                if (isCollapsed) {
+                    // Expand - calculate dynamic height
+                    controls.style.maxHeight = 'none';
+                    const scrollHeight = controls.scrollHeight;
+                    controls.style.maxHeight = '0px';
+                    
+                    // Force reflow then animate
+                    controls.offsetHeight;
+                    controls.classList.remove('collapsed');
+                    controls.style.maxHeight = scrollHeight + 'px';
+                    header.classList.add('expanded');
+                } else {
+                    // Collapse
+                    controls.style.maxHeight = controls.scrollHeight + 'px';
+                    // Force reflow then animate
+                    controls.offsetHeight;
+                    controls.style.maxHeight = '0px';
+                    controls.classList.add('collapsed');
+                    header.classList.remove('expanded');
+                }
+            }
+        }
+    });
 
     // Start the application
     initializeApp();
