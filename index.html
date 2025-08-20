@@ -90,13 +90,19 @@
           </div>
 
           <div id="todo-card" class="dashboard-card">
-            <h2>오늘의 할 일</h2>
-            <div class="tts-control todo-tts-control">
-              <span>To-Do 알림</span>
-              <label class="switch">
-                <input type="checkbox" id="todo-tts-toggle" checked />
-                <span class="slider round"></span>
-              </label>
+            <div class="todo-header">
+              <div class="date-navigation">
+                <button id="prev-date-btn">&lt;</button>
+                <h2 id="current-todo-date">2025.08.17</h2>
+                <button id="next-date-btn">&gt;</button>
+              </div>
+              <div class="tts-control todo-tts-control">
+                <span>To-Do 알림</span>
+                <label class="switch">
+                  <input type="checkbox" id="todo-tts-toggle" checked />
+                  <span class="slider round"></span>
+                </label>
+              </div>
             </div>
             <form id="todo-form">
               <input type="time" id="todo-time" required />
@@ -113,12 +119,16 @@
               </select>
               <button type="submit">추가</button>
             </form>
-            <ul id="todo-list"></ul>
-          </div>
-
-          <div id="done-card" class="dashboard-card">
-            <h2>오늘 해낸 일</h2>
-            <ul id="done-list"></ul>
+            <div class="todo-sections">
+              <div class="todo-section">
+                <h3>할 일</h3>
+                <ul id="todo-list"></ul>
+              </div>
+              <div class="done-section">
+                <h3>완료한 일</h3>
+                <ul id="done-list"></ul>
+              </div>
+            </div>
           </div>
 
     <div id="calculator-card" class="dashboard-card">
@@ -248,9 +258,6 @@
             </label>
             <label>
               <input type="checkbox" id="toggle-todo-card" checked> 오늘의 할 일
-            </label>
-            <label>
-              <input type="checkbox" id="toggle-done-card" checked> 오늘 해낸 일
             </label>
             <label>
               <input type="checkbox" id="toggle-attendance-card" checked> 출퇴근부

@@ -201,6 +201,45 @@ body {
 }
 
 /* To-Do List Styles */
+.todo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.date-navigation {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.date-navigation button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.date-navigation button:hover {
+  background-color: #0056b3;
+}
+
+#current-todo-date {
+  margin: 0;
+  font-size: 1.2em;
+  color: #333;
+  min-width: 120px;
+  text-align: center;
+}
+
 #todo-form {
   display: flex;
   gap: 10px;
@@ -214,6 +253,8 @@ body {
   border: 1px solid #ccc;
   border-radius: 5px;
   font-size: 16px;
+  height: 44px;
+  box-sizing: border-box;
 }
 
 #todo-form input[type="text"] {
@@ -222,10 +263,39 @@ body {
 
 #todo-form button {
   background-color: #28a745;
-  padding: 36px 15px;
+  height: 44px;
+  padding: 0 15px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 #todo-form button:hover {
   background-color: #218838;
+}
+
+.todo-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.todo-section,
+.done-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.todo-section h3,
+.done-section h3 {
+  margin: 0 0 10px 0;
+  color: #555;
+  font-size: 1.1em;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 5px;
 }
 
 #todo-list,
@@ -377,8 +447,10 @@ button {
 
 .todo-tts-control {
   justify-content: flex-end;
-  margin-bottom: 15px;
-  margin-top: -15px;
+  margin: 0;
+  flex-shrink: 0;
+  width: auto;
+  padding: 0;
 }
 
 .switch {
@@ -934,6 +1006,8 @@ input:checked + .slider:before {
   border: 1px solid #ccc;
   border-radius: 5px;
   font-size: 16px;
+  height: 44px;
+  box-sizing: border-box;
 }
 
 #record-button {
@@ -945,6 +1019,11 @@ input:checked + .slider:before {
   border-radius: 5px;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  height: 44px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #record-button.recording {

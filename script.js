@@ -14,6 +14,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const todoPriorityInput = document.getElementById('todo-priority');
     const todoListElem = document.getElementById('todo-list');
     const doneListElem = document.getElementById('done-list');
+    const currentTodoDateElem = document.getElementById('current-todo-date');
+    const prevDateBtn = document.getElementById('prev-date-btn');
+    const nextDateBtn = document.getElementById('next-date-btn');
     const pomoTimerElem = document.getElementById('pomodoro-timer');
     const pomoStatusElem = document.getElementById('pomodoro-status');
     const pomoStartPauseBtn = document.getElementById('pomo-start-pause');
@@ -97,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let attendanceRecords = {};
     let holidays = {};
     let currentCalendarDate = new Date();
+    let currentTodoDate = new Date();
 
     // Pomodoro State
     let pomoInterval = null;
@@ -188,6 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
         breakDuration = 5;
         cardVisibility = {};
         expression = '0';
+        currentTodoDate = new Date();
 
         // Re-initialize and re-render UI
         initializeApp();
@@ -453,14 +458,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 }
 
+    // --- Date Functions ---
+    const formatDateString = (date) => {
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        return `${year}.${month}.${day}`;
+    };
+
+    const getDateKey = (date) => {
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const updateCurrentTodoDate = () => {
+        currentTodoDateElem.textContent = formatDateString(currentTodoDate);
+    };
+
+    const navigateDate = (direction) => {
+        currentTodoDate.setDate(currentTodoDate.getDate() + direction);
+        updateCurrentTodoDate();
+        renderTodos();
+    };
+
     // --- To-Do Functions ---
     const renderTodos = () => {
         todoListElem.innerHTML = '';
         doneListElem.innerHTML = '';
-        const sortedTodos = todos.sort((a, b) => {
+        const currentDateKey = getDateKey(currentTodoDate);
+        
+        const todaysItems = todos.filter(todo => todo.date === currentDateKey);
+        const sortedTodos = todaysItems.sort((a, b) => {
             if (a.completed !== b.completed) return a.completed ? 1 : -1;
             return a.time.localeCompare(b.time);
         });
+        
         sortedTodos.forEach(todo => {
             const li = document.createElement('li');
             li.dataset.id = todo.id;
@@ -483,7 +517,16 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const addTodo = (time, text, priority) => {
-        todos.push({ id: Date.now(), time, text, priority, completed: false, notified: false });
+        const dateKey = getDateKey(currentTodoDate);
+        todos.push({ 
+            id: Date.now(), 
+            time, 
+            text, 
+            priority, 
+            completed: false, 
+            notified: false,
+            date: dateKey 
+        });
         saveData('todos', todos);
         renderTodos();
     };
@@ -830,8 +873,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isTodoTtsEnabled) {
             let changed = false;
+            const todayKey = getDateKey(new Date());
             todos.forEach(todo => {
-                if (!todo.completed && !todo.notified && todo.time <= currentTime) {
+                if (!todo.completed && !todo.notified && todo.time <= currentTime && todo.date === todayKey) {
                     speak(todo.text);
                     todo.notified = true;
                     changed = true;
@@ -917,6 +961,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     todoListElem.addEventListener('click', handleTodoAction);
+    prevDateBtn.addEventListener('click', () => navigateDate(-1));
+    nextDateBtn.addEventListener('click', () => navigateDate(1));
     pomoStartPauseBtn.addEventListener('click', () => isPomoRunning ? pausePomo() : startPomo());
     pomoResetBtn.addEventListener('click', resetPomo);
     setPomoTimeBtn.addEventListener('click', setPomoTimes);
@@ -991,6 +1037,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Voice Memo Event Listeners
+    recordButton.addEventListener('click', () => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            stopRecording();
+        } else {
+            startRecording();
+        }
+    });
+
+    recordingsList.addEventListener('click', (e) => {
+        if (e.target.classList.contains('delete-recording-btn')) {
+            const id = Number(e.target.dataset.id);
+            deleteRecording(id);
+        }
+    });
+
     // Initialize card visibility listeners
     settingsCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', (e) => {
@@ -1036,6 +1098,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 3. Render UI after all data is ready
         loadCardOrder();
+        updateCurrentTodoDate();
         renderTodos();
         renderNotes();
         renderRecordings();
