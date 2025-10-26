@@ -23,7 +23,10 @@
             <h2>시간대별 예보</h2>
             <div id="hourly-forecast"></div>
           </div>
-          <button id="toggleButton">알림 시작</button>
+          <div class="weather-controls">
+            <button id="toggleButton">알림 시작</button>
+            <button id="locationButton" class="hidden" title="위치 재설정">📍</button>
+          </div>
         </div>
 
         <div id="tts-notifier-card" class="dashboard-card">
@@ -610,8 +613,52 @@
         <button id="convert-btn">변환</button>
       </div>
     </div>
+
+    <div id="bookmark-manager-card" class="dashboard-card hidden">
+      <h2>🔖 북마크 관리</h2>
+      <div class="bookmark-stats">
+        <span id="bookmark-stats">북마크 0개</span>
+        <div class="bookmark-actions">
+          <button id="export-bookmarks-btn" class="small-btn" title="북마크 내보내기">📤</button>
+          <button id="import-bookmarks-btn" class="small-btn" title="북마크 가져오기">📥</button>
+          <input type="file" id="import-bookmarks-input" accept=".json" style="display: none;">
+          <button id="clear-all-bookmarks-btn" class="small-btn danger" title="모든 북마크 삭제">🗑️</button>
+        </div>
+      </div>
+
+      <form id="bookmark-form" class="bookmark-form">
+        <div class="form-row">
+          <input type="text" id="bookmark-title" placeholder="제목 *" required>
+          <select id="bookmark-category">
+            <option value="work">업무</option>
+            <option value="development">개발</option>
+            <option value="design">디자인</option>
+            <option value="documentation">문서/위키</option>
+            <option value="tools">도구</option>
+            <option value="communication">소통</option>
+            <option value="project">프로젝트</option>
+            <option value="learning">학습</option>
+            <option value="other">기타</option>
+          </select>
+        </div>
+        <input type="url" id="bookmark-url" placeholder="URL (example.com, 192.168.1.1:8080, localhost:3000) *" required>
+        <textarea id="bookmark-description" placeholder="설명 (선택사항)" rows="2"></textarea>
+        <button type="submit" class="add-bookmark-btn">북마크 추가</button>
+      </form>
+
+      <div class="bookmark-filters">
+        <input type="text" id="bookmark-search" placeholder="🔍 북마크 검색...">
+        <select id="category-filter">
+          <option value="all">전체 카테고리</option>
+        </select>
+      </div>
+
+      <div id="bookmarks-list" class="bookmarks-list">
+        <div class="no-bookmarks">저장된 북마크가 없습니다.</div>
+      </div>
+    </div>
     
-    <script src="script.js"></script>
+    <script type="module" src="src/main.js"></script>
 
     <div id="work-break-schedule-modal" class="modal hidden">
       <div class="modal-content">
@@ -692,7 +739,7 @@
                     <span>데이터 관리 및 분석</span>
                     <span class="dropdown-arrow">▼</span>
                 </h3>
-                <div class="category-controls collapsed" id="category-data">
+                <div class="category-controls" id="category-data">
                     <label>
                       <input type="checkbox" id="toggle-goal-tracker-card" checked> 
                       <span>일일 목표 추적기</span>
@@ -718,7 +765,7 @@
                     <span>재무 및 비용 관리</span>
                     <span class="dropdown-arrow">▼</span>
                 </h3>
-                <div class="category-controls collapsed" id="category-finance">
+                <div class="category-controls" id="category-finance">
                     <label>
                       <input type="checkbox" id="toggle-expense-manager-card" checked> <span>경비 관리</span>
                     </label>
@@ -737,7 +784,7 @@
                     <span>업무 조직 및 계획</span>
                     <span class="dropdown-arrow">▼</span>
                 </h3>
-                <div class="category-controls collapsed" id="category-planning">
+                <div class="category-controls" id="category-planning">
                     <label>
                       <input type="checkbox" id="toggle-meeting-manager-card" checked> <span>회의 일정 관리</span>
                     </label>
@@ -759,7 +806,7 @@
                     <span>협업 및 소통</span>
                     <span class="dropdown-arrow">▼</span>
                 </h3>
-                <div class="category-controls collapsed" id="category-collaboration">
+                <div class="category-controls" id="category-collaboration">
                     <label>
                       <input type="checkbox" id="toggle-team-contacts-card" checked> <span>팀 연락처</span>
                     </label>
@@ -778,7 +825,7 @@
                     <span>성장 및 학습</span>
                     <span class="dropdown-arrow">▼</span>
                 </h3>
-                <div class="category-controls collapsed" id="category-growth">
+                <div class="category-controls" id="category-growth">
                     <label>
                       <input type="checkbox" id="toggle-learning-plan-card" checked> <span>학습 계획</span>
                     </label>
@@ -797,7 +844,10 @@
                     <span>도구 및 유틸리티</span>
                     <span class="dropdown-arrow">▼</span>
                 </h3>
-                <div class="category-controls collapsed" id="category-tools">
+                <div class="category-controls" id="category-tools">
+                    <label>
+                      <input type="checkbox" id="toggle-bookmark-manager-card"> <span>북마크 관리</span>
+                    </label>
                     <label>
                       <input type="checkbox" id="toggle-password-generator-card" checked> <span>비밀번호 생성기</span>
                     </label>

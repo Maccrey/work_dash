@@ -1,0 +1,175 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - heading "업무 대시보드" [level=1] [ref=e3]
+    - generic [ref=e4] [cursor=pointer]: ⚙️
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - heading "날씨 알리미" [level=1] [ref=e7]
+      - paragraph [ref=e8]: 알림 시작 버튼을 눌러주세요.
+      - button "알림 시작" [ref=e10] [cursor=pointer]
+    - generic [ref=e11]:
+      - heading "TTS 알리미" [level=2] [ref=e12]
+      - generic [ref=e13]:
+        - generic [ref=e14]: TTS 알림
+        - generic [ref=e15]:
+          - checkbox [checked]
+      - generic [ref=e17]:
+        - textbox [ref=e18]
+        - textbox "알림 내용을 입력하세요..." [ref=e19]
+        - button "추가" [ref=e20] [cursor=pointer]
+      - button "업무/휴식 스케줄" [ref=e22] [cursor=pointer]
+      - list [ref=e23]
+    - generic [ref=e24]:
+      - heading "메모장" [level=2] [ref=e25]
+      - generic [ref=e26]:
+        - textbox "새 메모를 입력하세요..." [ref=e27]
+        - button "추가" [ref=e28] [cursor=pointer]
+      - list [ref=e29]
+    - generic [ref=e30]:
+      - heading "음성 메모" [level=2] [ref=e31]
+      - generic [ref=e32]:
+        - textbox "태그를 입력하세요..." [ref=e33]
+        - button "녹음 시작" [ref=e34] [cursor=pointer]
+        - generic [ref=e35]: 00:00
+    - generic [ref=e37]:
+      - heading "뽀모도로 타이머" [level=2] [ref=e38]
+      - generic [ref=e41]: 25:00
+      - generic [ref=e42]: 집중할 시간!
+      - generic [ref=e43]:
+        - generic [ref=e44]: "작업:"
+        - spinbutton "작업:" [ref=e45]: "25"
+        - generic [ref=e46]: "휴식:"
+        - spinbutton "휴식:" [ref=e47]: "5"
+        - button "설정" [ref=e48] [cursor=pointer]
+      - generic [ref=e49]:
+        - button "시작" [ref=e50] [cursor=pointer]
+        - button "리셋" [ref=e51] [cursor=pointer]
+    - generic [ref=e52]:
+      - generic [ref=e53]:
+        - generic [ref=e54]:
+          - button "<" [ref=e55] [cursor=pointer]
+          - heading "2025.10.26" [level=2] [ref=e56]
+          - button ">" [ref=e57] [cursor=pointer]
+        - generic [ref=e58]:
+          - generic [ref=e59]: To-Do 알림
+          - generic [ref=e60]:
+            - checkbox [checked]
+      - generic [ref=e62]:
+        - textbox [ref=e63]
+        - textbox "알림 내용을 입력하세요..." [ref=e64]
+        - combobox [ref=e65]:
+          - option "높음"
+          - option "보통" [selected]
+          - option "낮음"
+        - button "추가" [ref=e66] [cursor=pointer]
+      - generic [ref=e67]:
+        - generic [ref=e68]:
+          - heading "할 일" [level=3] [ref=e69]
+          - list [ref=e70]
+        - generic [ref=e71]:
+          - heading "완료한 일" [level=3] [ref=e72]
+          - list
+    - generic [ref=e73]:
+      - heading "계산기" [level=2] [ref=e74]
+      - generic [ref=e75]: "0"
+      - generic [ref=e76]:
+        - button "C" [ref=e77] [cursor=pointer]
+        - button "÷" [ref=e78] [cursor=pointer]
+        - button "×" [ref=e79] [cursor=pointer]
+        - button "-" [ref=e80] [cursor=pointer]
+        - button "7" [ref=e81] [cursor=pointer]
+        - button "8" [ref=e82] [cursor=pointer]
+        - button "9" [ref=e83] [cursor=pointer]
+        - button "+" [ref=e84] [cursor=pointer]
+        - button "4" [ref=e85] [cursor=pointer]
+        - button "5" [ref=e86] [cursor=pointer]
+        - button "6" [ref=e87] [cursor=pointer]
+        - button "1" [ref=e88] [cursor=pointer]
+        - button "2" [ref=e89] [cursor=pointer]
+        - button "3" [ref=e90] [cursor=pointer]
+        - button "=" [ref=e91] [cursor=pointer]
+        - button "0" [ref=e92] [cursor=pointer]
+        - button "." [ref=e93] [cursor=pointer]
+    - generic [ref=e94]:
+      - heading "9-to-6 출퇴근부" [level=2] [ref=e95]
+      - generic [ref=e96]:
+        - button "출근 (9:00)" [ref=e97] [cursor=pointer]
+        - button "퇴근 (18:00)" [ref=e98] [cursor=pointer]
+        - combobox [ref=e99] [cursor=pointer]:
+          - option "병가" [selected]
+          - option "무단결근"
+          - option "월차"
+        - button "상태 적용" [ref=e100] [cursor=pointer]
+      - generic [ref=e101]:
+        - heading "주간 현황" [level=3] [ref=e102]
+        - table [ref=e103]:
+          - rowgroup [ref=e104]:
+            - row "날짜 요일 출근 퇴근 상태" [ref=e105]:
+              - cell "날짜" [ref=e106]
+              - cell "요일" [ref=e107]
+              - cell "출근" [ref=e108]
+              - cell "퇴근" [ref=e109]
+              - cell "상태" [ref=e110]
+          - rowgroup [ref=e111]:
+            - row "2025-10-24 금 - - -" [ref=e112]:
+              - cell "2025-10-24" [ref=e113]
+              - cell "금" [ref=e114]
+              - cell "-" [ref=e115]
+              - cell "-" [ref=e116]
+              - cell "-" [ref=e117]
+            - row "2025-10-23 목 - - -" [ref=e118]:
+              - cell "2025-10-23" [ref=e119]
+              - cell "목" [ref=e120]
+              - cell "-" [ref=e121]
+              - cell "-" [ref=e122]
+              - cell "-" [ref=e123]
+            - row "2025-10-22 수 - - -" [ref=e124]:
+              - cell "2025-10-22" [ref=e125]
+              - cell "수" [ref=e126]
+              - cell "-" [ref=e127]
+              - cell "-" [ref=e128]
+              - cell "-" [ref=e129]
+            - row "2025-10-21 화 - - -" [ref=e130]:
+              - cell "2025-10-21" [ref=e131]
+              - cell "화" [ref=e132]
+              - cell "-" [ref=e133]
+              - cell "-" [ref=e134]
+              - cell "-" [ref=e135]
+            - row "2025-10-20 월 - - -" [ref=e136]:
+              - cell "2025-10-20" [ref=e137]
+              - cell "월" [ref=e138]
+              - cell "-" [ref=e139]
+              - cell "-" [ref=e140]
+              - cell "-" [ref=e141]
+    - generic [ref=e142]:
+      - heading "월간 출퇴근 요약" [level=2] [ref=e143]
+      - button "월 현황 보기" [ref=e144] [cursor=pointer]
+      - generic [ref=e145]:
+        - paragraph [ref=e146]:
+          - text: "총 근무일:"
+          - generic [ref=e147]: "0"
+          - text: 일
+        - paragraph [ref=e148]:
+          - text: "지각:"
+          - generic [ref=e149]: "0"
+          - text: 회
+        - paragraph [ref=e150]:
+          - text: "조퇴:"
+          - generic [ref=e151]: "0"
+          - text: 회
+        - paragraph [ref=e152]:
+          - text: "병가:"
+          - generic [ref=e153]: "0"
+          - text: 회
+        - paragraph [ref=e154]:
+          - text: "무단결근:"
+          - generic [ref=e155]: "0"
+          - text: 회
+        - paragraph [ref=e156]:
+          - text: "월차:"
+          - generic [ref=e157]: "0"
+          - text: 회
+```

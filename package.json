@@ -1,0 +1,23 @@
+{
+  "name": "work-dashboard",
+  "version": "1.0.0",
+  "description": "한국어 업무 대시보드 웹 애플리케이션",
+  "main": "index.html",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "serve": "python3 -m http.server 8000"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  },
+  "keywords": [
+    "dashboard",
+    "productivity",
+    "korean",
+    "vanilla-js"
+  ],
+  "author": "maccrey",
+  "license": "MIT"
+}
