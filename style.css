@@ -39,12 +39,11 @@ body {
 
 .main-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 20px;
   width: 100%;
   max-width: 1600px;
-  align-items: flex-start;
-  justify-content: center;
+  align-items: stretch;
 }
 
 .dashboard-card {
@@ -54,12 +53,13 @@ body {
   background-color: white;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
   box-sizing: border-box;
-  width: 380px; /* Fixed width for all cards */
-  height: 600px; /* Fixed height for all cards */
+  width: 100%;
+  min-height: 440px;
+  height: auto;
   display: flex;
   flex-direction: column;
   gap: 15px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Specific overrides for content within cards to fit the new size */
@@ -1476,11 +1476,15 @@ input:checked + .slider:before {
 
 /* Responsive adjustments */
 @media (max-width: 1200px) {
-  .main-container {
-    flex-direction: column;
-    align-items: center;
+  body {
+    padding: 18px;
   }
-
+  .header-container {
+    max-width: 1200px;
+  }
+  .main-container {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
   .modal-content {
     width: 95%;
     max-width: 900px;
@@ -1506,6 +1510,27 @@ input:checked + .slider:before {
 }
 
 @media (max-width: 768px) {
+  body {
+    padding: 16px 14px;
+  }
+  .header-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .header-container h1 {
+    font-size: 2em;
+  }
+  #settings-icon {
+    font-size: 1.8em;
+  }
+  .main-container {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-card {
+    min-height: auto;
+    padding: 20px;
+  }
   .modal-content {
     width: 95%;
     margin: 2% auto;
@@ -1535,6 +1560,23 @@ input:checked + .slider:before {
     font-size: 1.05em;
     height: 56px;
     padding: 0 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 12px 10px;
+  }
+  .header-container h1 {
+    font-size: 1.8em;
+  }
+  .dashboard-card {
+    padding: 18px;
+    gap: 12px;
+  }
+  button {
+    font-size: 13px;
+    padding: 10px 12px;
   }
 }
 

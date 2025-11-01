@@ -139,6 +139,7 @@ async function updateWeatherUI() {
     if (!userCoords) return;
     const { latitude, longitude } = userCoords;
     const { x, y } = toGrid(latitude, longitude);
+    statusElem.textContent = '⏳ 날씨 정보를 업데이트하는 중입니다...';
     const weatherData = await getWeatherData(x, y);
 
     if (weatherData) {
@@ -181,6 +182,15 @@ async function updateWeatherUI() {
                 hourlyForecastElem.appendChild(forecastItem);
             });
         }
+
+        const updatedAt = new Date();
+        const formattedTime = updatedAt.toLocaleTimeString('ko-KR', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        statusElem.textContent = `✅ ${formattedTime} 기준 최신 날씨를 표시합니다.`;
+    } else {
+        statusElem.textContent = '⚠️ 최신 날씨 정보를 가져오지 못했습니다. 잠시 후 다시 시도합니다.';
     }
 }
 
