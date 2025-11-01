@@ -64,39 +64,55 @@ async function getWeatherData(x, y) {
         if (!data.response.body?.items?.item) throw new Error('No weather data in API response.');
 
         const items = data.response.body.items.item;
-        const currentHourStr = `${now.getHours().toString().padStart(2, '0')}00`;
+        const skyLabels = { '1': '맑음', '3': '구름많음', '4': '흐림' };
+        const ptyLabels = { '0': '없음', '1': '비', '2': '비/눈', '3': '눈', '5': '빗방울', '6': '빗방울/눈날림', '7': '눈날림' };
 
-        const findMostRecent = (category) => items.filter(item => item.category === category && item.fcstTime <= currentHourStr).sort((a, b) => b.fcstTime.localeCompare(a.fcstTime))[0];
+        const parseForecastDate = (dateStr, timeStr) => {
+            const year = Number(dateStr.slice(0, 4));
+            const month = Number(dateStr.slice(4, 6)) - 1;
+            const day = Number(dateStr.slice(6, 8));
+            const hour = Number(timeStr.slice(0, 2));
+            const minute = Number(timeStr.slice(2, 4));
+            return new Date(year, month, day, hour, minute);
+        };
 
-        const tempItem = findMostRecent('TMP') || items.find(i => i.category === 'T1H');
-        const skyItem = findMostRecent('SKY');
-        const ptyItem = findMostRecent('PTY');
+        const slotMap = new Map();
+        for (const item of items) {
+            const key = `${item.fcstDate}-${item.fcstTime}`;
+            if (!slotMap.has(key)) {
+                slotMap.set(key, {
+                    date: item.fcstDate,
+                    time: item.fcstTime,
+                    dateTime: parseForecastDate(item.fcstDate, item.fcstTime)
+                });
+            }
+            slotMap.get(key)[item.category] = item.fcstValue;
+        }
 
-        const skyState = { '1': '맑음', '3': '구름많음', '4': '흐림' }[skyItem?.fcstValue];
-        const ptyState = { '0': '없음', '1': '비', '2': '비/눈', '3': '눈', '5': '빗방울', '6': '빗방울/눈날림', '7': '눈날림' }[ptyItem?.fcstValue];
+        const slots = Array.from(slotMap.values())
+            .filter(slot => slot.TMP !== undefined && slot.SKY !== undefined && slot.PTY !== undefined)
+            .sort((a, b) => a.dateTime - b.dateTime);
 
-        const currentWeather = ptyState !== '없음' ? ptyState : skyState;
-        const currentTemp = tempItem?.fcstValue;
+        if (slots.length === 0) {
+            return { currentWeather: null, currentTemp: null, hourlyForecast: [] };
+        }
 
-        const hourlyForecast = Array.from({ length: 6 }, (_, i) => {
-            const forecastDate = new Date(now.getTime() + (i + 1) * 60 * 60 * 1000);
-            const forecastDateStr = `${forecastDate.getFullYear()}${(forecastDate.getMonth() + 1).toString().padStart(2, '0')}${forecastDate.getDate().toString().padStart(2, '0')}`;
-            const forecastTimeStr = `${forecastDate.getHours().toString().padStart(2, '0')}00`;
+        const currentSlot = [...slots].reverse().find(slot => slot.dateTime <= now) || slots[0];
+        const upcomingSlots = slots.filter(slot => slot.dateTime > now).slice(0, 6);
 
-            const hourlyTempItem = items.find(item => item.category === 'TMP' && item.fcstDate === forecastDateStr && item.fcstTime === forecastTimeStr);
-            const hourlySkyItem = items.find(item => item.category === 'SKY' && item.fcstDate === forecastDateStr && item.fcstTime === forecastTimeStr);
-            const hourlyPtyItem = items.find(item => item.category === 'PTY' && item.fcstDate === forecastDateStr && item.fcstTime === forecastTimeStr);
+        const currentSky = skyLabels[currentSlot?.SKY];
+        const currentPty = ptyLabels[currentSlot?.PTY];
+        const currentWeather = currentPty && currentPty !== '없음' ? currentPty : currentSky;
+        const currentTemp = currentSlot?.TMP !== undefined ? Number(currentSlot.TMP) : null;
 
-            if (!hourlyTempItem || !hourlySkyItem || !hourlyPtyItem) return null;
-
-            const forecastSky = { '1': '맑음', '3': '구름많음', '4': '흐림' }[hourlySkyItem.fcstValue];
-            const forecastPty = { '0': '없음', '1': '비', '2': '비/눈', '3': '눈', '5': '빗방울', '6': '빗방울/눈날림', '7': '눈날림' }[hourlyPtyItem.fcstValue];
+        const hourlyForecast = upcomingSlots.map(slot => {
+            const forecastWeather = ptyLabels[slot.PTY] !== '없음' ? ptyLabels[slot.PTY] : skyLabels[slot.SKY];
             return {
-                time: `${forecastDate.getHours().toString().padStart(2, '0')}:00`,
-                weather: forecastPty !== '없음' ? forecastPty : forecastSky,
-                temp: hourlyTempItem.fcstValue
+                time: `${slot.time.slice(0, 2)}:${slot.time.slice(2, 4)}`,
+                weather: forecastWeather,
+                temp: Number(slot.TMP)
             };
-        }).filter(Boolean);
+        });
 
         return { currentWeather, currentTemp, hourlyForecast };
     } catch (error) {
@@ -161,18 +177,20 @@ async function updateWeatherUI() {
 
         weatherInfoElem.classList.remove('hidden');
         currentWeatherElem.textContent = `${currentWeather || '정보 없음'} ${getWeatherIcon(currentWeather)}`;
-        currentTempElem.textContent = currentTemp || '정보 없음';
+        currentTempElem.textContent = (currentTemp !== null && currentTemp !== undefined) ? currentTemp : '정보 없음';
 
         hourlyForecastElem.innerHTML = '';
         if (hourlyForecast.length > 0) {
             const temps = hourlyForecast.map(f => f.temp);
             const minTemp = Math.min(...temps) - 2;
             const maxTemp = Math.max(...temps) + 2;
+            const tempRange = Math.max(1, maxTemp - minTemp);
 
             hourlyForecast.forEach(forecast => {
                 const forecastItem = document.createElement('div');
                 forecastItem.classList.add('forecast-item');
-                const barHeight = ((forecast.temp - minTemp) / (maxTemp - minTemp)) * 100;
+                const value = Number(forecast.temp);
+                const barHeight = Math.max(0, ((value - minTemp) / tempRange) * 100);
                 forecastItem.innerHTML = `
                     <div class="forecast-icon">${getWeatherIcon(forecast.weather)}</div>
                     <div class="bar-wrapper"><div class="temp-bar" style="height: ${barHeight}%;"></div></div>
@@ -181,6 +199,8 @@ async function updateWeatherUI() {
                 `;
                 hourlyForecastElem.appendChild(forecastItem);
             });
+        } else {
+            hourlyForecastElem.innerHTML = '<div class="forecast-empty">예보 데이터를 불러오지 못했습니다.</div>';
         }
 
         const updatedAt = new Date();
