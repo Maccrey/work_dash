@@ -52,6 +52,14 @@ async function getWeatherData(x, y) {
             throw new Error('Invalid JSON response from API');
         }
 
+        if (data?.ok === false) {
+            throw new Error(data?.error || `API Error ${data?.status ?? ''}`.trim());
+        }
+
+        if (!data?.response?.header) {
+            throw new Error('Weather proxy returned unexpected structure');
+        }
+
         if (data.response.header.resultCode !== '00') throw new Error(`API Error: ${data.response.header.resultMsg}`);
         if (!data.response.body?.items?.item) throw new Error('No weather data in API response.');
 

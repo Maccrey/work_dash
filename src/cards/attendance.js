@@ -38,35 +38,64 @@ function getHolidayInfo(year, month, date) {
 
 // 공휴일 데이터 가져오기 (API 호출)
 async function fetchHolidays(year) {
-    const url = new URL(HOLIDAY_PROXY_ENDPOINT);
+    const endpoints = HOLIDAY_PROXY_ENDPOINT.endsWith('/')
+        ? [HOLIDAY_PROXY_ENDPOINT]
+        : [HOLIDAY_PROXY_ENDPOINT, `${HOLIDAY_PROXY_ENDPOINT}/`];
+
+    let lastError = null;
+
+    for (const endpoint of endpoints) {
+        try {
+            await loadHolidayData(endpoint, year);
+            return;
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    if (lastError) {
+        console.error('Error fetching holiday data:', lastError);
+        throw lastError;
+    }
+}
+
+async function loadHolidayData(endpoint, year) {
+    const url = new URL(endpoint);
     url.searchParams.set('solYear', year);
     url.searchParams.set('numOfRows', '100');
 
-    try {
-        const response = await fetch(url.toString());
-        if (!response.ok) {
-            throw new Error(`Holiday API ${response.status}`);
-        }
-        const data = await response.json();
+    const response = await fetch(url.toString());
+    const responseText = await response.text();
 
-        if (data.response.header.resultCode === '00') {
-            const items = data.response.body?.items?.item;
-            if (items) {
-                const holidayArray = Array.isArray(items) ? items : [items];
-                const newHolidays = {};
-                
-                holidayArray.forEach(item => {
-                    const dateStr = String(item.locdate);
-                    const formattedDate = `${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}`;
-                    newHolidays[formattedDate] = item.dateName;
-                });
-                
-                updateHolidays({ ...holidays, ...newHolidays });
-            }
-        }
-    } catch (error) {
-        console.error('Error fetching holiday data:', error);
+    if (!response.ok) {
+        throw new Error(`Holiday API ${response.status}: ${responseText.slice(0, 120)}`);
     }
+
+    let data;
+    try {
+        data = JSON.parse(responseText);
+    } catch (error) {
+        throw new Error(`Holiday API invalid JSON: ${responseText.slice(0, 120)}`);
+    }
+
+    if (data?.response?.header?.resultCode !== '00') {
+        throw new Error(`Holiday API response error: ${data?.response?.header?.resultMsg ?? 'unknown'}`);
+    }
+
+    const items = data.response.body?.items?.item;
+    if (!items) return;
+
+    const holidayArray = Array.isArray(items) ? items : [items];
+    const newHolidays = {};
+
+    holidayArray.forEach(item => {
+        const dateStr = String(item.locdate);
+        if (!dateStr) return;
+        const formattedDate = `${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}`;
+        newHolidays[formattedDate] = item.dateName;
+    });
+
+    updateHolidays({ ...holidays, ...newHolidays });
 }
 
 // 출퇴근 현황 렌더링
