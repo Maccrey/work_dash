@@ -39,13 +39,13 @@ body {
 
 .main-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(352px, 1fr));
   gap: 20px;
   width: 100%;
-  max-width: 1080px;
+  max-width: 1180px;
   margin: 0 auto;
   align-items: stretch;
-  grid-auto-rows: 520px;
+  grid-auto-rows: 598px;
 }
 
 .dashboard-card {
@@ -57,8 +57,8 @@ body {
   box-sizing: border-box;
   width: 100%;
   min-height: 0;
-  height: 520px;
-  max-height: 520px;
+  height: 598px;
+  max-height: 598px;
   display: flex;
   flex-direction: column;
   gap: 15px;
