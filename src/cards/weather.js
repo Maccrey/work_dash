@@ -90,7 +90,7 @@ async function getWeatherData(x, y) {
         }
 
         const slots = Array.from(slotMap.values())
-            .filter(slot => slot.TMP !== undefined && slot.SKY !== undefined && slot.PTY !== undefined)
+            .filter(slot => slot.TMP !== undefined && slot.SKY !== undefined)
             .sort((a, b) => a.dateTime - b.dateTime);
 
         if (slots.length === 0) {
@@ -106,13 +106,20 @@ async function getWeatherData(x, y) {
         }
         const selectedSlots = upcomingSlots.slice(0, 6).sort((a, b) => a.dateTime - b.dateTime);
 
-        const currentSky = skyLabels[currentSlot?.SKY];
-        const currentPty = ptyLabels[currentSlot?.PTY];
+        const resolveSky = (value) => skyLabels[String(value)] || '정보 없음';
+        const resolvePrecip = (value) => {
+            const code = value === undefined || value === null ? '0' : String(value);
+            return ptyLabels[code] || '없음';
+        };
+
+        const currentSky = resolveSky(currentSlot?.SKY);
+        const currentPty = resolvePrecip(currentSlot?.PTY);
         const currentWeather = currentPty && currentPty !== '없음' ? currentPty : currentSky;
         const currentTemp = currentSlot?.TMP !== undefined ? Number(currentSlot.TMP) : null;
 
         const hourlyForecast = selectedSlots.map(slot => {
-            const forecastWeather = ptyLabels[slot.PTY] !== '없음' ? ptyLabels[slot.PTY] : skyLabels[slot.SKY];
+            const precip = resolvePrecip(slot.PTY);
+            const forecastWeather = precip !== '없음' ? precip : resolveSky(slot.SKY);
             return {
                 time: `${slot.time.slice(0, 2)}:${slot.time.slice(2, 4)}`,
                 weather: forecastWeather,

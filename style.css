@@ -13,8 +13,9 @@ body {
 
 .header-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
+  position: relative;
   width: 100%;
   max-width: 1600px;
   margin-bottom: 20px;
@@ -24,6 +25,7 @@ body {
   margin: 0;
   color: #333;
   font-size: 2.5em;
+  text-align: center;
 }
 
 #settings-icon {
@@ -31,6 +33,10 @@ body {
   cursor: pointer;
   color: #555;
   transition: color 0.3s ease;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 #settings-icon:hover {
@@ -39,29 +45,29 @@ body {
 
 .main-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(352px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(387px, 1fr));
+  gap: 22px;
   width: 100%;
-  max-width: 1180px;
+  max-width: 1298px;
   margin: 0 auto;
   align-items: stretch;
-  grid-auto-rows: 598px;
+  grid-auto-rows: 658px;
 }
 
 .dashboard-card {
   text-align: center;
-  padding: 25px;
+  padding: 27px;
   border-radius: 15px;
   background-color: white;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
   box-sizing: border-box;
   width: 100%;
   min-height: 0;
-  height: 598px;
-  max-height: 598px;
+  height: 658px;
+  max-height: 658px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 16px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -1532,7 +1538,7 @@ input:checked + .slider:before {
   }
   .header-container {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 10px;
   }
   .header-container h1 {
@@ -1540,6 +1546,8 @@ input:checked + .slider:before {
   }
   #settings-icon {
     font-size: 1.8em;
+    position: static;
+    transform: none;
   }
   .main-container {
     grid-template-columns: 1fr;
