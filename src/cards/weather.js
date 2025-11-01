@@ -1,9 +1,8 @@
 // 날씨 카드 모듈
-import { 
-    API_KEY, 
-    isWeatherSystemActive, 
+import {
+    isWeatherSystemActive,
     updateWeatherSystemActive,
-    userCoords, 
+    userCoords,
     updateUserCoords,
     previousHourlyForecast,
     updatePreviousHourlyForecast,
@@ -12,6 +11,8 @@ import {
     isTtsEnabled
 } from '../core/state.js';
 import { toGrid, getWeatherIcon, speak } from '../core/utils.js';
+
+const WEATHER_PROXY_ENDPOINT = 'https://dashboard-worker.m01071630214.workers.dev/weather';
 
 // DOM 요소들
 let toggleButton, locationButton, statusElem, weatherInfoElem, currentWeatherElem, currentTempElem, hourlyForecastElem;
@@ -31,10 +32,14 @@ async function getWeatherData(x, y) {
     }
 
     const base_time = `${base_hour.toString().padStart(2, '0')}00`;
-    const url = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=${encodeURIComponent(API_KEY)}&pageNo=1&numOfRows=290&dataType=JSON&base_date=${base_date}&base_time=${base_time}&nx=${x}&ny=${y}`;
+    const proxyUrl = new URL('https://dashboard-worker.m01071630214.workers.dev/weather');
+    proxyUrl.searchParams.set('base_date', base_date);
+    proxyUrl.searchParams.set('base_time', base_time);
+    proxyUrl.searchParams.set('nx', x);
+    proxyUrl.searchParams.set('ny', y);
 
     try {
-        const response = await fetch(url);
+        const response = await fetch(proxyUrl.toString());
         const responseText = await response.text();
         let data;
         try {
