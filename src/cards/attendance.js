@@ -1,15 +1,12 @@
 // 출퇴근 카드 모듈
 import {
-    attendanceRecords, 
-    updateAttendanceRecords, 
+    attendanceRecords,
+    updateAttendanceRecords,
     addAttendanceRecord,
     holidays,
-    updateHolidays,
     currentCalendarDate,
     updateCurrentCalendarDate
 } from '../core/state.js';
-
-const HOLIDAY_PROXY_ENDPOINT = 'https://dashboard-worker.m01071630214.workers.dev/holidays';
 
 // DOM 요소들
 let checkInBtn, checkOutBtn, statusSelect, applyStatusBtn;
@@ -34,55 +31,6 @@ function getDayOfWeek(dateString) {
 function getHolidayInfo(year, month, date) {
     const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
     return holidays[dateKey];
-}
-
-// 공휴일 데이터 가져오기 (API 호출)
-async function fetchHolidays(year) {
-    try {
-        await loadHolidayData(HOLIDAY_PROXY_ENDPOINT, year);
-    } catch (error) {
-        console.error('Error fetching holiday data:', error);
-        throw error;
-    }
-}
-
-async function loadHolidayData(endpoint, year) {
-    const url = new URL(endpoint);
-    url.searchParams.set('solYear', year);
-    url.searchParams.set('numOfRows', '100');
-
-    const response = await fetch(url.toString());
-    const responseText = await response.text();
-
-    if (!response.ok) {
-        throw new Error(`Holiday API ${response.status}: ${responseText.slice(0, 120)}`);
-    }
-
-    let data;
-    try {
-        data = JSON.parse(responseText);
-    } catch (error) {
-        throw new Error(`Holiday API invalid JSON: ${responseText.slice(0, 120)}`);
-    }
-
-    if (data?.response?.header?.resultCode !== '00') {
-        throw new Error(`Holiday API response error: ${data?.response?.header?.resultMsg ?? 'unknown'}`);
-    }
-
-    const items = data.response.body?.items?.item;
-    if (!items) return;
-
-    const holidayArray = Array.isArray(items) ? items : [items];
-    const newHolidays = {};
-
-    holidayArray.forEach(item => {
-        const dateStr = String(item.locdate);
-        if (!dateStr) return;
-        const formattedDate = `${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}`;
-        newHolidays[formattedDate] = item.dateName;
-    });
-
-    updateHolidays({ ...holidays, ...newHolidays });
 }
 
 // 출퇴근 현황 렌더링
@@ -367,10 +315,6 @@ export function initAttendanceCard() {
         showMonthlyViewBtn.textContent = isHidden ? '월 현황 보기' : '월 현황 숨기기';
     }
 
-    // 공휴일 데이터 가져오기
-    const currentYear = new Date().getFullYear();
-    fetchHolidays(currentYear);
-    
     // 초기 렌더링
     renderAttendance();
     renderMonthlyCalendar(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth());
@@ -387,6 +331,5 @@ export {
     renderMonthlyCalendar, 
     checkIn, 
     checkOut, 
-    applyStatus, 
-    fetchHolidays 
+    applyStatus
 };
