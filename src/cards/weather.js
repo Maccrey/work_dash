@@ -39,6 +39,8 @@ async function getWeatherData(x, y) {
     proxyUrl.searchParams.set('base_time', base_time);
     proxyUrl.searchParams.set('nx', x);
     proxyUrl.searchParams.set('ny', y);
+    proxyUrl.searchParams.set('pageNo', '1');
+    proxyUrl.searchParams.set('numOfRows', '290'); // ensure full hourly dataset
 
     try {
         const response = await fetch(proxyUrl.toString());
