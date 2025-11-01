@@ -1,14 +1,15 @@
 // 출퇴근 카드 모듈
-import { 
+import {
     attendanceRecords, 
     updateAttendanceRecords, 
     addAttendanceRecord,
     holidays,
     updateHolidays,
     currentCalendarDate,
-    updateCurrentCalendarDate,
-    API_KEY
+    updateCurrentCalendarDate
 } from '../core/state.js';
+
+const HOLIDAY_PROXY_ENDPOINT = 'https://dashboard-worker.m01071630214.workers.dev/holidays';
 
 // DOM 요소들
 let checkInBtn, checkOutBtn, statusSelect, applyStatusBtn;
@@ -37,12 +38,17 @@ function getHolidayInfo(year, month, date) {
 
 // 공휴일 데이터 가져오기 (API 호출)
 async function fetchHolidays(year) {
-    const url = `https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo?serviceKey=${encodeURIComponent(API_KEY)}&solYear=${year}&_type=json&numOfRows=100`;
-    
+    const url = new URL(HOLIDAY_PROXY_ENDPOINT);
+    url.searchParams.set('solYear', year);
+    url.searchParams.set('numOfRows', '100');
+
     try {
-        const response = await fetch(url);
+        const response = await fetch(url.toString());
+        if (!response.ok) {
+            throw new Error(`Holiday API ${response.status}`);
+        }
         const data = await response.json();
-        
+
         if (data.response.header.resultCode === '00') {
             const items = data.response.body?.items?.item;
             if (items) {

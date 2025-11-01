@@ -8,7 +8,9 @@ import {
     updatePreviousHourlyForecast,
     minuteInterval,
     weatherInterval,
-    isTtsEnabled
+    isTtsEnabled,
+    setMinuteInterval,
+    setWeatherInterval
 } from '../core/state.js';
 import { toGrid, getWeatherIcon, speak } from '../core/utils.js';
 
@@ -32,7 +34,7 @@ async function getWeatherData(x, y) {
     }
 
     const base_time = `${base_hour.toString().padStart(2, '0')}00`;
-    const proxyUrl = new URL('https://dashboard-worker.m01071630214.workers.dev/weather');
+    const proxyUrl = new URL(WEATHER_PROXY_ENDPOINT);
     proxyUrl.searchParams.set('base_date', base_date);
     proxyUrl.searchParams.set('base_time', base_time);
     proxyUrl.searchParams.set('nx', x);
@@ -270,8 +272,14 @@ function showLocationPermissionDialog() {
 function toggleWeatherSystem() {
     if (isWeatherSystemActive) {
         // 알림 중지
-        clearInterval(minuteInterval);
-        clearInterval(weatherInterval);
+        if (minuteInterval) {
+            clearInterval(minuteInterval);
+            setMinuteInterval(null);
+        }
+        if (weatherInterval) {
+            clearInterval(weatherInterval);
+            setWeatherInterval(null);
+        }
         updateWeatherSystemActive(false);
         toggleButton.textContent = '알림 시작';
         statusElem.textContent = '날씨 알림이 중지되었습니다.';
@@ -308,7 +316,7 @@ function toggleWeatherSystem() {
         }
 
         // 5분마다 날씨 데이터 업데이트
-        weatherInterval = setInterval(updateWeatherUI, 5 * 60 * 1000);
+        setWeatherInterval(setInterval(updateWeatherUI, 5 * 60 * 1000));
     }
 }
 
@@ -342,7 +350,7 @@ export function initWeatherCard() {
         statusElem.textContent = '날씨 알림이 활성화되어 있습니다.';
         if (locationButton) locationButton.classList.remove('hidden');
         updateWeatherUI();
-        weatherInterval = setInterval(updateWeatherUI, 5 * 60 * 1000);
+        setWeatherInterval(setInterval(updateWeatherUI, 5 * 60 * 1000));
     } else {
         // 알림이 비활성화된 상태에서는 위치 버튼 숨기기
         if (locationButton) locationButton.classList.add('hidden');
@@ -353,8 +361,10 @@ export function initWeatherCard() {
 export function cleanupWeatherCard() {
     if (minuteInterval) {
         clearInterval(minuteInterval);
+        setMinuteInterval(null);
     }
     if (weatherInterval) {
         clearInterval(weatherInterval);
+        setWeatherInterval(null);
     }
 }

@@ -1,9 +1,6 @@
 // 전역 상태 관리
 import { saveData, loadData } from './utils.js';
 
-// API 키 (한국 기상청 공공데이터 API)
-export const API_KEY = 'SPoonI/4mUJxw4Vmxo4aGH3kaoUjNxNM8Ykjd8OpB/qRJ6M+Gd2+A5mIjSCN+YY6Fp1LIsACNnYlujeHw45E5A==';
-
 // 날씨 시스템 상태
 export let isWeatherSystemActive = false;
 export let minuteInterval = null;
@@ -49,6 +46,14 @@ export let isTodoTtsEnabled = true;
 // 상태 업데이트 함수들
 export const updateWeatherSystemActive = (value) => {
     isWeatherSystemActive = value;
+};
+
+export const setMinuteInterval = (value) => {
+    minuteInterval = value;
+};
+
+export const setWeatherInterval = (value) => {
+    weatherInterval = value;
 };
 
 export const updateUserCoords = (coords) => {
