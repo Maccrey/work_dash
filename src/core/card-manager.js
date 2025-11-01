@@ -28,7 +28,18 @@ export class Card {
         this.dependencies = dependencies;
         this.isInitialized = false;
         this.domElement = null;
-        this.defaultVisible = true;
+        const initialElement = document.getElementById(id);
+        const defaultVisibleAttr = initialElement?.dataset?.defaultVisible;
+        if (defaultVisibleAttr !== undefined) {
+            this.defaultVisible = defaultVisibleAttr !== 'false';
+        } else {
+            const hasHiddenClass = initialElement?.classList.contains('hidden');
+            const hasInlineHidden = initialElement?.style.display === 'none';
+            this.defaultVisible = !(hasHiddenClass || hasInlineHidden);
+            if (initialElement) {
+                initialElement.dataset.defaultVisible = this.defaultVisible ? 'true' : 'false';
+            }
+        }
     }
 
     async initialize() {
@@ -39,9 +50,6 @@ export class Card {
             console.warn(`Card DOM element not found: ${this.id}`);
             return;
         }
-
-        const initiallyHidden = this.domElement.classList.contains('hidden') || this.domElement.style.display === 'none';
-        this.defaultVisible = !initiallyHidden;
 
         try {
             if (this.initFn) {

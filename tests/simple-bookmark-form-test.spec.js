@@ -11,8 +11,17 @@ test('북마크 폼 기본 동작 테스트', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
   
-  // 북마크 매니저 카드가 바로 보이는지 확인 (기본으로 표시되도록 변경했으므로)
-  await expect(page.locator('#bookmark-manager-card')).toBeVisible();
+  // 기본 상태에서는 카드가 숨겨져 있어야 함
+  const bookmarkCard = page.locator('#bookmark-manager-card');
+  await expect(bookmarkCard).toBeHidden();
+
+  // 설정 모달에서 카드 표시 설정
+  await page.click('#settings-icon');
+  await page.locator('.category-header[data-category="tools"]').click();
+  await page.locator('#toggle-bookmark-manager-card').check();
+  await page.click('#settings-modal .close-button');
+
+  await expect(bookmarkCard).toBeVisible();
   
   // 잠시 대기
   await page.waitForTimeout(2000);
