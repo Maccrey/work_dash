@@ -38,24 +38,11 @@ function getHolidayInfo(year, month, date) {
 
 // 공휴일 데이터 가져오기 (API 호출)
 async function fetchHolidays(year) {
-    const endpoints = HOLIDAY_PROXY_ENDPOINT.endsWith('/')
-        ? [HOLIDAY_PROXY_ENDPOINT]
-        : [HOLIDAY_PROXY_ENDPOINT, `${HOLIDAY_PROXY_ENDPOINT}/`];
-
-    let lastError = null;
-
-    for (const endpoint of endpoints) {
-        try {
-            await loadHolidayData(endpoint, year);
-            return;
-        } catch (error) {
-            lastError = error;
-        }
-    }
-
-    if (lastError) {
-        console.error('Error fetching holiday data:', lastError);
-        throw lastError;
+    try {
+        await loadHolidayData(HOLIDAY_PROXY_ENDPOINT, year);
+    } catch (error) {
+        console.error('Error fetching holiday data:', error);
+        throw error;
     }
 }
 
