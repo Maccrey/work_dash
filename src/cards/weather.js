@@ -98,14 +98,20 @@ async function getWeatherData(x, y) {
         }
 
         const currentSlot = [...slots].reverse().find(slot => slot.dateTime <= now) || slots[0];
-        const upcomingSlots = slots.filter(slot => slot.dateTime > now).slice(0, 6);
+        let upcomingSlots = slots.filter(slot => slot.dateTime > now);
+        if (upcomingSlots.length < 6) {
+            const remaining = 6 - upcomingSlots.length;
+            const previousSlots = slots.filter(slot => slot.dateTime <= now).slice(-remaining);
+            upcomingSlots = upcomingSlots.concat(previousSlots);
+        }
+        const selectedSlots = upcomingSlots.slice(0, 6).sort((a, b) => a.dateTime - b.dateTime);
 
         const currentSky = skyLabels[currentSlot?.SKY];
         const currentPty = ptyLabels[currentSlot?.PTY];
         const currentWeather = currentPty && currentPty !== '없음' ? currentPty : currentSky;
         const currentTemp = currentSlot?.TMP !== undefined ? Number(currentSlot.TMP) : null;
 
-        const hourlyForecast = upcomingSlots.map(slot => {
+        const hourlyForecast = selectedSlots.map(slot => {
             const forecastWeather = ptyLabels[slot.PTY] !== '없음' ? ptyLabels[slot.PTY] : skyLabels[slot.SKY];
             return {
                 time: `${slot.time.slice(0, 2)}:${slot.time.slice(2, 4)}`,

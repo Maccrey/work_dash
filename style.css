@@ -45,6 +45,7 @@ body {
   max-width: 1080px;
   margin: 0 auto;
   align-items: stretch;
+  grid-auto-rows: minmax(0, 520px);
 }
 
 .dashboard-card {
@@ -55,9 +56,8 @@ body {
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
   box-sizing: border-box;
   width: 100%;
-  min-height: 440px;
-  max-height: 600px;
-  height: auto;
+  min-height: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -1541,9 +1541,11 @@ input:checked + .slider:before {
   }
   .main-container {
     grid-template-columns: 1fr;
+    grid-auto-rows: auto;
   }
   .dashboard-card {
     min-height: auto;
+    height: auto;
     padding: 20px;
   }
   .modal-content {
