@@ -15,134 +15,227 @@ import {
 import { toGrid, getWeatherIcon, speak } from '../core/utils.js';
 
 const WEATHER_PROXY_ENDPOINT = 'https://dashboard-worker.m01071630214.workers.dev/weather';
+const BASE_RELEASE_HOURS = [2, 5, 8, 11, 14, 17, 20, 23];
+const MAX_BASE_ATTEMPTS = 4;
+const HOUR_IN_MS = 60 * 60 * 1000;
+const DAY_IN_MS = 24 * HOUR_IN_MS;
+const KST_OFFSET_MS = 9 * HOUR_IN_MS;
+const KST_TIMEZONE = 'Asia/Seoul';
+const kstDateTimeFormatter = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: KST_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+});
+
+const getKstComponents = (date) => {
+    const parts = kstDateTimeFormatter.formatToParts(date);
+    const componentMap = {};
+    for (const part of parts) {
+        if (part.type !== 'literal') {
+            componentMap[part.type] = part.value;
+        }
+    }
+    return {
+        date: `${componentMap.year}${componentMap.month}${componentMap.day}`,
+        hour: Number(componentMap.hour),
+        minute: Number(componentMap.minute)
+    };
+};
+
+const buildBaseParamCandidates = (referenceDate, maxAttempts = MAX_BASE_ATTEMPTS) => {
+    const candidates = [];
+    const descendingHours = [...BASE_RELEASE_HOURS].reverse();
+    let cursor = referenceDate;
+    let { date, hour } = getKstComponents(cursor);
+    let startIndex = descendingHours.findIndex((value) => value <= hour);
+
+    if (startIndex === -1) {
+        cursor = new Date(cursor.getTime() - DAY_IN_MS);
+        ({ date } = getKstComponents(cursor));
+        startIndex = 0;
+    }
+
+    let index = startIndex;
+    while (candidates.length < maxAttempts) {
+        const baseHour = descendingHours[index];
+        candidates.push({
+            baseDate: date,
+            baseTime: `${baseHour.toString().padStart(2, '0')}00`
+        });
+        index += 1;
+        if (index >= descendingHours.length) {
+            cursor = new Date(cursor.getTime() - DAY_IN_MS);
+            ({ date } = getKstComponents(cursor));
+            index = 0;
+        }
+    }
+
+    return candidates;
+};
+
+const toForecastDate = (forecastDate, forecastTime) => {
+    const year = Number(forecastDate.slice(0, 4));
+    const month = Number(forecastDate.slice(4, 6)) - 1;
+    const day = Number(forecastDate.slice(6, 8));
+    const hour = Number(forecastTime.slice(0, 2));
+    const minute = Number(forecastTime.slice(2, 4));
+    const utcMillis = Date.UTC(year, month, day, hour, minute) - KST_OFFSET_MS;
+    return new Date(utcMillis);
+};
 
 // DOM 요소들
 let toggleButton, locationButton, statusElem, weatherInfoElem, currentWeatherElem, currentTempElem, hourlyForecastElem;
 
 // 날씨 데이터 가져오기
 async function getWeatherData(x, y) {
-    const now = new Date();
-    let base_date = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}`;
-    const availableTimes = [2, 5, 8, 11, 14, 17, 20, 23];
-    let currentHour = now.getHours();
-    let base_hour = availableTimes.slice().reverse().find(hour => hour <= currentHour);
-
-    if (base_hour === undefined) {
-        now.setDate(now.getDate() - 1);
-        base_date = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}`;
-        base_hour = 23;
-    }
-
-    const base_time = `${base_hour.toString().padStart(2, '0')}00`;
-    const proxyUrl = new URL(WEATHER_PROXY_ENDPOINT);
-    proxyUrl.searchParams.set('base_date', base_date);
-    proxyUrl.searchParams.set('base_time', base_time);
-    proxyUrl.searchParams.set('nx', x);
-    proxyUrl.searchParams.set('ny', y);
-    proxyUrl.searchParams.set('pageNo', '1');
-    proxyUrl.searchParams.set('numOfRows', '290'); // ensure full hourly dataset
-
     try {
-        const response = await fetch(proxyUrl.toString());
-        const responseText = await response.text();
-        let data;
-        try {
-            data = JSON.parse(responseText);
-        } catch (jsonError) {
-            console.error('JSON parsing error:', jsonError);
-            console.error('Raw API response:', responseText);
-            throw new Error('Invalid JSON response from API');
-        }
+        const now = new Date();
+        const baseCandidates = buildBaseParamCandidates(now);
+        let lastError = null;
 
-        if (data?.ok === false) {
-            throw new Error(data?.error || `API Error ${data?.status ?? ''}`.trim());
-        }
+        for (const { baseDate, baseTime } of baseCandidates) {
+            const proxyUrl = new URL(WEATHER_PROXY_ENDPOINT);
+            proxyUrl.searchParams.set('base_date', baseDate);
+            proxyUrl.searchParams.set('base_time', baseTime);
+            proxyUrl.searchParams.set('nx', x);
+            proxyUrl.searchParams.set('ny', y);
+            proxyUrl.searchParams.set('pageNo', '1');
+            proxyUrl.searchParams.set('numOfRows', '290');
 
-        if (!data?.response?.header) {
-            throw new Error('Weather proxy returned unexpected structure');
-        }
+            try {
+                const response = await fetch(proxyUrl.toString());
+                const responseText = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (jsonError) {
+                    console.error('JSON parsing error:', jsonError);
+                    console.error('Raw API response:', responseText);
+                    const parseError = new Error('Invalid JSON response from API');
+                    parseError.retryable = true;
+                    throw parseError;
+                }
 
-        if (data.response.header.resultCode !== '00') throw new Error(`API Error: ${data.response.header.resultMsg}`);
-        if (!data.response.body?.items?.item) throw new Error('No weather data in API response.');
+                if (data?.ok === false) {
+                    const status = Number(data?.status);
+                    const apiError = new Error(data?.error || `API Error ${status || ''}`.trim());
+                    apiError.status = status;
+                    apiError.retryable = status >= 500;
+                    throw apiError;
+                }
 
-        const items = data.response.body.items.item;
-        const skyLabels = { '1': '맑음', '3': '구름많음', '4': '흐림' };
-        const ptyLabels = { '0': '없음', '1': '비', '2': '비/눈', '3': '눈', '5': '빗방울', '6': '빗방울/눈날림', '7': '눈날림' };
+                if (!data?.response?.header) {
+                    const structureError = new Error('Weather proxy returned unexpected structure');
+                    structureError.retryable = false;
+                    throw structureError;
+                }
 
-        const parseForecastDate = (dateStr, timeStr) => {
-            const year = Number(dateStr.slice(0, 4));
-            const month = Number(dateStr.slice(4, 6)) - 1;
-            const day = Number(dateStr.slice(6, 8));
-            const hour = Number(timeStr.slice(0, 2));
-            const minute = Number(timeStr.slice(2, 4));
-            return new Date(year, month, day, hour, minute);
-        };
+                const { header, body } = data.response;
+                if (header.resultCode !== '00') {
+                    const headerError = new Error(`API Error: ${header.resultMsg}`);
+                    headerError.resultCode = header.resultCode;
+                    headerError.retryable = header.resultCode === '03';
+                    throw headerError;
+                }
 
-        const slotMap = new Map();
-        for (const item of items) {
-            const key = `${item.fcstDate}-${item.fcstTime}`;
-            if (!slotMap.has(key)) {
-                slotMap.set(key, {
-                    date: item.fcstDate,
-                    time: item.fcstTime,
-                    dateTime: parseForecastDate(item.fcstDate, item.fcstTime)
+                if (!body?.items?.item || body.items.item.length === 0) {
+                    const emptyError = new Error('No weather data in API response.');
+                    emptyError.retryable = true;
+                    throw emptyError;
+                }
+
+                const items = body.items.item;
+                const skyLabels = { '1': '맑음', '3': '구름많음', '4': '흐림' };
+                const ptyLabels = { '0': '없음', '1': '비', '2': '비/눈', '3': '눈', '5': '빗방울', '6': '빗방울/눈날림', '7': '눈날림' };
+
+                const slotMap = new Map();
+                for (const item of items) {
+                    const key = `${item.fcstDate}-${item.fcstTime}`;
+                    if (!slotMap.has(key)) {
+                        slotMap.set(key, {
+                            date: item.fcstDate,
+                            time: item.fcstTime,
+                            dateTime: toForecastDate(item.fcstDate, item.fcstTime)
+                        });
+                    }
+                    slotMap.get(key)[item.category] = item.fcstValue;
+                }
+
+                const slots = Array.from(slotMap.values())
+                    .filter(slot => slot.TMP !== undefined && slot.SKY !== undefined)
+                    .sort((a, b) => a.dateTime - b.dateTime);
+
+                if (slots.length === 0) {
+                    const noSlotError = new Error('No usable weather slots available.');
+                    noSlotError.retryable = true;
+                    throw noSlotError;
+                }
+
+                const currentSlot = [...slots].reverse().find(slot => slot.dateTime <= now) || slots[0];
+                let upcomingSlots = slots.filter(slot => slot.dateTime > now);
+                if (upcomingSlots.length < 6) {
+                    const remaining = 6 - upcomingSlots.length;
+                    const previousSlots = slots.filter(slot => slot.dateTime <= now).slice(-remaining);
+                    upcomingSlots = upcomingSlots.concat(previousSlots);
+                }
+                const selectedSlots = upcomingSlots.slice(0, 6).sort((a, b) => a.dateTime - b.dateTime);
+
+                const resolveSky = (value) => skyLabels[String(value)] || '정보 없음';
+                const resolvePrecip = (value) => {
+                    const code = value === undefined || value === null ? '0' : String(value);
+                    return ptyLabels[code] || '없음';
+                };
+
+                const currentSky = resolveSky(currentSlot?.SKY);
+                const currentPty = resolvePrecip(currentSlot?.PTY);
+                const currentWeather = currentPty && currentPty !== '없음' ? currentPty : currentSky;
+                const currentTemp = currentSlot?.TMP !== undefined ? Number(currentSlot.TMP) : null;
+
+                const hourlyForecast = selectedSlots.map(slot => {
+                    const precip = resolvePrecip(slot.PTY);
+                    const forecastWeather = precip !== '없음' ? precip : resolveSky(slot.SKY);
+                    return {
+                        time: `${slot.time.slice(0, 2)}:${slot.time.slice(2, 4)}`,
+                        weather: forecastWeather,
+                        temp: Number(slot.TMP)
+                    };
                 });
+
+                return { currentWeather, currentTemp, hourlyForecast };
+            } catch (error) {
+                console.warn(`Weather fetch failed for base_date=${baseDate}, base_time=${baseTime}`, error);
+                lastError = error;
+                if (!error.retryable) {
+                    break;
+                }
             }
-            slotMap.get(key)[item.category] = item.fcstValue;
         }
 
-        const slots = Array.from(slotMap.values())
-            .filter(slot => slot.TMP !== undefined && slot.SKY !== undefined)
-            .sort((a, b) => a.dateTime - b.dateTime);
-
-        if (slots.length === 0) {
-            return { currentWeather: null, currentTemp: null, hourlyForecast: [] };
+        if (lastError) {
+            throw lastError;
         }
 
-        const currentSlot = [...slots].reverse().find(slot => slot.dateTime <= now) || slots[0];
-        let upcomingSlots = slots.filter(slot => slot.dateTime > now);
-        if (upcomingSlots.length < 6) {
-            const remaining = 6 - upcomingSlots.length;
-            const previousSlots = slots.filter(slot => slot.dateTime <= now).slice(-remaining);
-            upcomingSlots = upcomingSlots.concat(previousSlots);
-        }
-        const selectedSlots = upcomingSlots.slice(0, 6).sort((a, b) => a.dateTime - b.dateTime);
-
-        const resolveSky = (value) => skyLabels[String(value)] || '정보 없음';
-        const resolvePrecip = (value) => {
-            const code = value === undefined || value === null ? '0' : String(value);
-            return ptyLabels[code] || '없음';
-        };
-
-        const currentSky = resolveSky(currentSlot?.SKY);
-        const currentPty = resolvePrecip(currentSlot?.PTY);
-        const currentWeather = currentPty && currentPty !== '없음' ? currentPty : currentSky;
-        const currentTemp = currentSlot?.TMP !== undefined ? Number(currentSlot.TMP) : null;
-
-        const hourlyForecast = selectedSlots.map(slot => {
-            const precip = resolvePrecip(slot.PTY);
-            const forecastWeather = precip !== '없음' ? precip : resolveSky(slot.SKY);
-            return {
-                time: `${slot.time.slice(0, 2)}:${slot.time.slice(2, 4)}`,
-                weather: forecastWeather,
-                temp: Number(slot.TMP)
-            };
-        });
-
-        return { currentWeather, currentTemp, hourlyForecast };
+        throw new Error('날씨 데이터를 찾을 수 없습니다.');
     } catch (error) {
         console.error('Error fetching weather data:', error);
-        
-        // CORS 또는 API 오류 시 더 구체적인 메시지 표시
-        if (error.message.includes('Invalid JSON')) {
+
+        if (error.status === 504 || error.status === 503 || error.status === 502) {
+            statusElem.textContent = '기상청 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.';
+        } else if (error.resultCode === '03') {
+            statusElem.textContent = '기상청 예보가 아직 공개되지 않았습니다. 잠시 후 다시 시도해주세요.';
+        } else if (typeof error.status === 'number' && error.status >= 500) {
+            statusElem.textContent = '기상청 서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+        } else if (error.message.includes('Invalid JSON')) {
             statusElem.textContent = 'API 응답 오류입니다. 잠시 후 다시 시도해주세요.';
         } else if (error.message.includes('fetch')) {
             statusElem.textContent = '네트워크 연결을 확인해주세요.';
         } else {
             statusElem.textContent = `날씨 정보 오류: ${error.message}`;
         }
-        
-        // 대체 날씨 정보 표시
+
         displayFallbackWeather();
         return null;
     }
