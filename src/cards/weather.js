@@ -16,7 +16,8 @@ import { toGrid, getWeatherIcon, speak } from '../core/utils.js';
 
 const WEATHER_PROXY_ENDPOINT = 'https://dashboard-worker.m01071630214.workers.dev/weather';
 const BASE_RELEASE_HOURS = [2, 5, 8, 11, 14, 17, 20, 23];
-const MAX_BASE_ATTEMPTS = 4;
+const MAX_BASE_ATTEMPTS = BASE_RELEASE_HOURS.length * 2;
+const ROW_COUNT_ATTEMPTS = ['120', '80', '60', '40'];
 const HOUR_IN_MS = 60 * 60 * 1000;
 const DAY_IN_MS = 24 * HOUR_IN_MS;
 const KST_OFFSET_MS = 9 * HOUR_IN_MS;
@@ -29,6 +30,8 @@ const kstDateTimeFormatter = new Intl.DateTimeFormat('ko-KR', {
     hour: '2-digit',
     minute: '2-digit'
 });
+const DIRECT_WEATHER_ENDPOINT = 'https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst';
+const DIRECT_WEATHER_API_KEY = 'SPoonI/4mUJxw4Vmxo4aGH3kaoUjNxNM8Ykjd8OpB/qRJ6M+Gd2+A5mIjSCN+YY6Fp1LIsACNnYlujeHw45E5A==';
 
 const getKstComponents = (date) => {
     const parts = kstDateTimeFormatter.formatToParts(date);
@@ -86,6 +89,129 @@ const toForecastDate = (forecastDate, forecastTime) => {
     return new Date(utcMillis);
 };
 
+const buildProxyUrl = (baseDate, baseTime, x, y, numOfRows) => {
+    const url = new URL(WEATHER_PROXY_ENDPOINT);
+    url.searchParams.set('base_date', baseDate);
+    url.searchParams.set('base_time', baseTime);
+    url.searchParams.set('nx', x);
+    url.searchParams.set('ny', y);
+    url.searchParams.set('pageNo', '1');
+    url.searchParams.set('numOfRows', numOfRows);
+    return url;
+};
+
+const buildDirectUrl = (baseDate, baseTime, x, y, numOfRows) => {
+    const url = new URL(DIRECT_WEATHER_ENDPOINT);
+    url.searchParams.set('serviceKey', DIRECT_WEATHER_API_KEY);
+    url.searchParams.set('dataType', 'JSON');
+    url.searchParams.set('pageNo', '1');
+    url.searchParams.set('numOfRows', numOfRows);
+    url.searchParams.set('base_date', baseDate);
+    url.searchParams.set('base_time', baseTime);
+    url.searchParams.set('nx', x);
+    url.searchParams.set('ny', y);
+    return url;
+};
+
+const annotateError = (error, status, retryable = true) => {
+    if (status !== undefined && error.status === undefined) {
+        error.status = status;
+    }
+    if (error.retryable === undefined) {
+        error.retryable = retryable;
+    }
+    return error;
+};
+
+const fetchAndNormalize = async (url) => {
+    let response;
+    try {
+        response = await fetch(url.toString());
+    } catch (networkError) {
+        throw annotateError(networkError, undefined, true);
+    }
+
+    let responseText;
+    try {
+        responseText = await response.text();
+    } catch (streamError) {
+        throw annotateError(streamError, response?.status, response?.status >= 500);
+    }
+
+    let data;
+    try {
+        data = JSON.parse(responseText);
+    } catch (jsonError) {
+        const parseError = new Error('Invalid JSON response from API');
+        parseError.cause = jsonError;
+        throw annotateError(parseError, response?.status, response?.status >= 500);
+    }
+
+    if (!response.ok) {
+        const httpError = new Error(data?.error || `API Error ${response.status}`);
+        throw annotateError(httpError, response.status, response.status >= 500);
+    }
+
+    if (data?.ok === false) {
+        const status = Number(data?.status);
+        const apiError = new Error(data?.error || `API Error ${status || ''}`.trim());
+        apiError.status = status;
+        throw annotateError(apiError, status, status >= 500);
+    }
+
+    if (!data?.response?.header) {
+        const structureError = new Error('Weather API returned unexpected structure');
+        throw annotateError(structureError, response.status, false);
+    }
+
+    const { header, body } = data.response;
+    if (header.resultCode !== '00') {
+        const headerError = new Error(`API Error: ${header.resultMsg}`);
+        headerError.resultCode = header.resultCode;
+        const retryable = header.resultCode === '03';
+        throw annotateError(headerError, Number(header.resultCode), retryable);
+    }
+
+    if (!body?.items?.item || body.items.item.length === 0) {
+        const emptyError = new Error('No weather data in API response.');
+        throw annotateError(emptyError, response.status, true);
+    }
+
+    return body.items.item;
+};
+
+const requestWeatherItems = async (baseDate, baseTime, x, y) => {
+    let lastError = null;
+
+    for (const numOfRows of ROW_COUNT_ATTEMPTS) {
+        try {
+            return await fetchAndNormalize(buildProxyUrl(baseDate, baseTime, x, y, numOfRows));
+        } catch (error) {
+            lastError = error;
+            if (!error.retryable) {
+                throw error;
+            }
+        }
+    }
+
+    for (const numOfRows of ROW_COUNT_ATTEMPTS) {
+        try {
+            return await fetchAndNormalize(buildDirectUrl(baseDate, baseTime, x, y, numOfRows));
+        } catch (error) {
+            lastError = error;
+            if (!error.retryable) {
+                throw error;
+            }
+        }
+    }
+
+    if (lastError) {
+        throw lastError;
+    }
+
+    throw new Error('Weather data is unavailable at the moment.');
+};
+
 // DOM 요소들
 let toggleButton, locationButton, statusElem, weatherInfoElem, currentWeatherElem, currentTempElem, hourlyForecastElem;
 
@@ -97,57 +223,8 @@ async function getWeatherData(x, y) {
         let lastError = null;
 
         for (const { baseDate, baseTime } of baseCandidates) {
-            const proxyUrl = new URL(WEATHER_PROXY_ENDPOINT);
-            proxyUrl.searchParams.set('base_date', baseDate);
-            proxyUrl.searchParams.set('base_time', baseTime);
-            proxyUrl.searchParams.set('nx', x);
-            proxyUrl.searchParams.set('ny', y);
-            proxyUrl.searchParams.set('pageNo', '1');
-            proxyUrl.searchParams.set('numOfRows', '290');
-
             try {
-                const response = await fetch(proxyUrl.toString());
-                const responseText = await response.text();
-                let data;
-                try {
-                    data = JSON.parse(responseText);
-                } catch (jsonError) {
-                    console.error('JSON parsing error:', jsonError);
-                    console.error('Raw API response:', responseText);
-                    const parseError = new Error('Invalid JSON response from API');
-                    parseError.retryable = true;
-                    throw parseError;
-                }
-
-                if (data?.ok === false) {
-                    const status = Number(data?.status);
-                    const apiError = new Error(data?.error || `API Error ${status || ''}`.trim());
-                    apiError.status = status;
-                    apiError.retryable = status >= 500;
-                    throw apiError;
-                }
-
-                if (!data?.response?.header) {
-                    const structureError = new Error('Weather proxy returned unexpected structure');
-                    structureError.retryable = false;
-                    throw structureError;
-                }
-
-                const { header, body } = data.response;
-                if (header.resultCode !== '00') {
-                    const headerError = new Error(`API Error: ${header.resultMsg}`);
-                    headerError.resultCode = header.resultCode;
-                    headerError.retryable = header.resultCode === '03';
-                    throw headerError;
-                }
-
-                if (!body?.items?.item || body.items.item.length === 0) {
-                    const emptyError = new Error('No weather data in API response.');
-                    emptyError.retryable = true;
-                    throw emptyError;
-                }
-
-                const items = body.items.item;
+                const items = await requestWeatherItems(baseDate, baseTime, x, y);
                 const skyLabels = { '1': '맑음', '3': '구름많음', '4': '흐림' };
                 const ptyLabels = { '0': '없음', '1': '비', '2': '비/눈', '3': '눈', '5': '빗방울', '6': '빗방울/눈날림', '7': '눈날림' };
 
