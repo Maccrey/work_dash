@@ -43,6 +43,30 @@ body {
   color: #007bff;
 }
 
+.adfit-banner {
+  width: 100%;
+  max-width: 1298px;
+  min-height: 90px;
+  margin: 10px auto 32px;
+  padding: 8px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.adfit-banner .kakao_ad_area {
+  margin: 0 auto;
+}
+
+@media (max-width: 860px) {
+  .adfit-banner {
+    min-height: 50px;
+    margin: 8px auto 28px;
+    padding: 6px 0;
+  }
+}
+
 .main-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(387px, 1fr));

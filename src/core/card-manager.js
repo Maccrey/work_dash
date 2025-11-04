@@ -311,7 +311,7 @@ export function initializeSettingsModal() {
             }
         }
 
-        const shouldStartExpanded = categoryKey === CardCategories.BASIC;
+        const shouldStartExpanded = false;
         setCategoryExpansion(container, arrow, shouldStartExpanded, header);
     });
 

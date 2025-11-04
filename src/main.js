@@ -7,6 +7,7 @@ import {
     initializeSettingsModal,
     applyCardVisibilitySettings 
 } from './core/card-manager.js';
+import { initializeHeaderAd, cleanupHeaderAd } from './core/adfit-banner.js';
 
 // 애플리케이션 초기화
 async function initializeApp() {
@@ -18,6 +19,9 @@ async function initializeApp() {
         
         // 2. 모든 카드 등록
         registerAllCards();
+        
+        // 2-1. 헤더 광고 초기화
+        initializeHeaderAd();
         
         // 3. 설정 모달 초기화 
         initializeSettingsModal();
@@ -182,6 +186,7 @@ function formatTime(totalMinutes) {
 // 애플리케이션 정리
 function cleanupApp() {
     try {
+        cleanupHeaderAd();
         cleanupAllCards();
         console.log('앱 정리 완료');
     } catch (error) {
