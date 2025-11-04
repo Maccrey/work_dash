@@ -46,13 +46,16 @@ body {
 .adfit-banner {
   width: 100%;
   max-width: 1298px;
-  min-height: 90px;
   margin: 10px auto 32px;
-  padding: 8px 0;
   display: flex;
   justify-content: center;
   align-items: center;
   box-sizing: border-box;
+  padding: 0;
+}
+
+.adfit-banner--footer {
+  margin: 40px auto 20px;
 }
 
 .adfit-banner .kakao_ad_area {
@@ -61,30 +64,11 @@ body {
 
 @media (max-width: 860px) {
   .adfit-banner {
-    min-height: 50px;
     margin: 8px auto 28px;
-    padding: 6px 0;
   }
-}
 
-.dashboard-inline-ad {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 90px;
-  padding: 10px 0;
-  box-sizing: border-box;
-}
-
-.dashboard-inline-ad .kakao_ad_area {
-  margin: 0 auto;
-}
-
-@media (max-width: 860px) {
-  .dashboard-inline-ad {
-    min-height: 50px;
-    padding: 8px 0;
+  .adfit-banner--footer {
+    margin: 32px auto 16px;
   }
 }
 
