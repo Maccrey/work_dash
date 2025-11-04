@@ -1,6 +1,7 @@
 // 카드 관리 시스템
 import { cardVisibility, updateCardVisibility } from './state.js';
 import { saveData, loadData } from './utils.js';
+import { refreshDashboardAds } from './adfit-banner.js';
 
 // 카드 메타데이터 타입 정의
 export const CardCategories = {
@@ -97,6 +98,8 @@ export class Card {
             newVisibility[this.id] = visible;
             updateCardVisibility(newVisibility);
         }
+
+        refreshDashboardAds();
     }
 
     getVisibilityPreference(savedVisibility = cardVisibility) {

@@ -67,6 +67,27 @@ body {
   }
 }
 
+.dashboard-inline-ad {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 90px;
+  padding: 10px 0;
+  box-sizing: border-box;
+}
+
+.dashboard-inline-ad .kakao_ad_area {
+  margin: 0 auto;
+}
+
+@media (max-width: 860px) {
+  .dashboard-inline-ad {
+    min-height: 50px;
+    padding: 8px 0;
+  }
+}
+
 .main-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(387px, 1fr));
