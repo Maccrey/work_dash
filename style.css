@@ -55,6 +55,8 @@ body {
 }
 
 .adfit-banner--footer {
+  max-width: 728px;
+  width: 100%;
   margin: 40px auto 20px;
 }
 
@@ -81,6 +83,7 @@ body {
   }
 
   .adfit-banner--footer {
+    max-width: 320px;
     margin: 32px auto 16px;
   }
 }

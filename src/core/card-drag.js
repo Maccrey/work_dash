@@ -260,6 +260,8 @@ export function initializeCardDrag() {
     container = document.querySelector('.main-container');
     if (!container) return;
 
+    container.querySelectorAll('.dashboard-card-placeholder').forEach(placeholder => placeholder.remove());
+
     container.addEventListener('pointerdown', onPointerDown);
     container.addEventListener('pointerup', onPointerUpBeforeLongPress);
     container.addEventListener('pointerleave', onPointerLeave);
