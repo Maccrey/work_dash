@@ -8,6 +8,7 @@ import {
     applyCardVisibilitySettings 
 } from './core/card-manager.js';
 import { initializeHeaderAd, cleanupHeaderAd } from './core/adfit-banner.js';
+import { initializeCardDrag, cleanupCardDrag } from './core/card-drag.js';
 
 // 애플리케이션 초기화
 async function initializeApp() {
@@ -31,9 +32,12 @@ async function initializeApp() {
         
         // 5. 카드 표시/숨김 설정 적용
         applyCardVisibilitySettings();
-        
+
         // 6. 기타 UI 초기화
         initDataManagement();
+
+        // 7. 카드 드래그 앤 드롭 초기화
+        initializeCardDrag();
         
         console.log('업무 대시보드 초기화 완료');
         
@@ -186,6 +190,7 @@ function formatTime(totalMinutes) {
 // 애플리케이션 정리
 function cleanupApp() {
     try {
+        cleanupCardDrag();
         cleanupHeaderAd();
         cleanupAllCards();
         console.log('앱 정리 완료');

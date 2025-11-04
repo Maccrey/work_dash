@@ -62,6 +62,19 @@ body {
   margin: 0 auto;
 }
 
+.dashboard-card.dragging {
+  opacity: 0.9;
+  cursor: grabbing;
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-card-placeholder {
+  border: 2px dashed #007bff;
+  border-radius: 15px;
+  background-color: rgba(0, 123, 255, 0.08);
+  pointer-events: none;
+}
+
 @media (max-width: 860px) {
   .adfit-banner {
     margin: 8px auto 28px;
