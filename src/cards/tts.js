@@ -2,10 +2,11 @@
 import { 
     ttsSchedules, 
     updateTtsSchedules, 
-    addTtsSchedule as addTtsToState, 
     removeTtsSchedule,
     isTtsEnabled,
-    updateTtsEnabled
+    updateTtsEnabled,
+    ttsLastResetDate,
+    updateTtsLastResetDate
 } from '../core/state.js';
 import { speak, generateId, getCurrentTime, compareTime, isValidTime } from '../core/utils.js';
 
@@ -13,10 +14,26 @@ import { speak, generateId, getCurrentTime, compareTime, isValidTime } from '../
 let ttsToggle, ttsTimeInput, ttsTextInput, addTtsScheduleBtn, ttsScheduleList;
 let setupWorkBreakScheduleBtn, workBreakScheduleModal, closeBtn, saveWorkBreakScheduleBtn;
 
+// 하루가 바뀌면 notified 상태를 리셋해서 다음 날에도 알림이 울리도록 보장
+function ensureSchedulesAreCurrent() {
+    const todayKey = new Date().toISOString().split('T')[0];
+    if (ttsLastResetDate !== todayKey) {
+        const resetSchedules = ttsSchedules.map(schedule => ({
+            ...schedule,
+            notified: false
+        }));
+        updateTtsSchedules(resetSchedules);
+        updateTtsLastResetDate(todayKey);
+        return resetSchedules;
+    }
+    return ttsSchedules;
+}
+
 // TTS 스케줄 목록 렌더링
 function renderTtsSchedules() {
     ttsScheduleList.innerHTML = '';
-    const sortedSchedules = [...ttsSchedules].sort((a, b) => a.time.localeCompare(b.time));
+    const schedulesForToday = ensureSchedulesAreCurrent();
+    const sortedSchedules = [...schedulesForToday].sort((a, b) => a.time.localeCompare(b.time));
     
     sortedSchedules.forEach(schedule => {
         const li = document.createElement('li');
@@ -139,7 +156,8 @@ function checkTtsNotifications() {
     
     const currentTime = getCurrentTime();
     
-    const pendingNotifications = ttsSchedules.filter(schedule => 
+    const schedulesForToday = ensureSchedulesAreCurrent();
+    const pendingNotifications = schedulesForToday.filter(schedule => 
         !schedule.notified && 
         compareTime(schedule.time, currentTime) <= 0
     );
@@ -150,14 +168,7 @@ function checkTtsNotifications() {
     });
     
     if (pendingNotifications.length > 0) {
-        updateTtsSchedules(ttsSchedules);
-    }
-    
-    // 자정이 지나면 모든 알림을 리셋
-    const now = new Date();
-    if (now.getHours() === 0 && now.getMinutes() === 0) {
-        ttsSchedules.forEach(schedule => schedule.notified = false);
-        updateTtsSchedules(ttsSchedules);
+        updateTtsSchedules(schedulesForToday);
     }
 }
 

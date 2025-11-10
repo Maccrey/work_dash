@@ -42,6 +42,7 @@ export let recordingTimerInterval = null;
 // TTS 상태
 export let isTtsEnabled = true;
 export let isTodoTtsEnabled = true;
+export let ttsLastResetDate = null;
 
 // 상태 업데이트 함수들
 export const updateWeatherSystemActive = (value) => {
@@ -193,14 +194,34 @@ export const updateTodoTtsEnabled = (enabled) => {
     saveData('todoTtsEnabled', enabled);
 };
 
+export const updateTtsLastResetDate = (dateString) => {
+    ttsLastResetDate = dateString;
+    saveData('ttsLastResetDate', ttsLastResetDate);
+};
+
 // 데이터 초기화 및 로드 함수
 export const loadAllData = () => {
     todos = loadData('todos') || [];
     notes = loadData('notes') || [];
     recordings = loadData('voiceRecordings') || [];
     ttsSchedules = loadData('ttsSchedules') || [];
+    ttsLastResetDate = loadData('ttsLastResetDate');
     attendanceRecords = loadData('attendanceRecords') || {};
     previousHourlyForecast = loadData('previousHourlyForecast') || [];
+
+    const todayKey = new Date().toISOString().split('T')[0];
+    if (ttsLastResetDate !== todayKey) {
+        const resetSchedules = ttsSchedules.map(schedule => ({
+            ...schedule,
+            notified: false
+        }));
+        const hadNotifiedSchedules = ttsSchedules.some(schedule => schedule?.notified);
+        if (hadNotifiedSchedules) {
+            ttsSchedules = resetSchedules;
+            saveData('ttsSchedules', ttsSchedules);
+        }
+        updateTtsLastResetDate(todayKey);
+    }
     
     // 설정 로드
     const ttsEnabled = loadData('ttsEnabled');
@@ -223,7 +244,7 @@ export const clearAllData = () => {
     const keysToClear = [
         'todos', 'notes', 'voiceRecordings', 'ttsSchedules', 'previousHourlyForecast',
         'attendanceRecords', 'ttsEnabled', 'todoTtsEnabled', 'pomoSettings',
-        'cardVisibility', 'cardOrder'
+        'cardVisibility', 'cardOrder', 'ttsLastResetDate'
     ];
     
     keysToClear.forEach(key => localStorage.removeItem(key));
@@ -237,6 +258,7 @@ export const clearAllData = () => {
     previousHourlyForecast = [];
     isTtsEnabled = true;
     isTodoTtsEnabled = true;
+    ttsLastResetDate = null;
     workDuration = 25;
     breakDuration = 5;
     cardVisibility = {};
